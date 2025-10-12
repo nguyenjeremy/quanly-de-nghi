@@ -1,52 +1,27 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Quản lý Hóa đơn và Phiếu</title>
+  <title>Quản lý hóa đơn</title>
   <link rel="stylesheet" href="style.css">
+  <script src="xlsx.full.min.js"></script>
+  <script src="FileSaver.min.js"></script>
 </head>
 <body>
-  <h1>Nhập Hóa đơn bán lẻ</h1>
-  <label>Ngày: <input type="date" id="invoiceDate"></label>
-  <label>Nhà cung cấp: <input type="text" id="supplier" placeholder="Tên nhà cung cấp"></label>
-  <table id="invoiceTable">
-    <thead>
-      <tr>
-        <th>STT</th>
-        <th>Tên hàng</th>
-        <th>Số lượng</th>
-        <th>Đơn vị tính</th>
-        <th>Đơn giá</th>
-        <th>Nơi nhận</th>
-        <th>Thành tiền</th>
-      </tr>
-    </thead>
-    <tbody id="invoiceBody">
-      <!-- Dòng hàng sẽ được thêm tự động -->
-    </tbody>
-  </table>
-  <button id="addRowBtn">Thêm dòng hàng</button>
-  <button id="saveBtn">Lưu ra file JSON</button>
-  <button id="loadBtn">Tải từ file JSON</button>
-  <input type="file" id="fileInput" accept=".json" style="display:none;">
-  <button id="printInvoiceBtn">In Hóa đơn</button>
-  <button id="exportExcelBtn">Xuất Excel</button>
+  <h1>Quản lý Hóa đơn</h1>
+  <nav>
+    <a href="nhap_hoadon.html">Nhập hóa đơn mới</a> |
+    <a href="baocao.html">Báo cáo</a>
+  </nav>
 
-  <!-- Nơi hiển thị ô chọn phiếu thanh toán -->
-  <h2>Danh sách các mặt hàng đã nhập</h2>
-  <table id="allItemsTable">
-    <thead>
-      <tr>
-        <th>Chọn</th><th>STT</th><th>NCC</th><th>Tên hàng</th><th>Số lượng</th><th>Đơn vị</th><th>Đơn giá</th><th>Nơi nhận</th><th>Thành tiền</th>
-      </tr>
-    </thead>
-    <tbody id="allItemsBody">
-      <!-- Tất cả mặt hàng từ các hóa đơn -->
-    </tbody>
-  </table>
-  <button id="printPurchaseBtn">Xuất Phiếu Đề nghị mua vật tư</button>
-  <button id="printPaymentBtn">Xuất Phiếu Đề nghị thanh toán</button>
+  <div>
+    <button id="saveJsonBtn">Lưu ra JSON</button>
+    <button id="loadJsonBtn">Tải từ JSON</button>
+    <input type="file" id="fileInput" accept=".json" style="display:none">
+  </div>
+
+  <h2>Danh sách Hóa đơn</h2>
+  <ul id="invoiceList"></ul>
 
   <script src="script.js"></script>
 </body>
