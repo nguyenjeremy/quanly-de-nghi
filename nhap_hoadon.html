@@ -2,41 +2,33 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Đề nghị mua vật tư</title>
+  <title>Nhập hóa đơn</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>ĐỀ NGHỊ MUA VẬT TƯ</h2>
+  <h1>Nhập Hóa đơn</h1>
   <a href="index.html">&larr; Trở về Trang chủ</a>
+  <form>
+    <div>
+      <label>Nhà Cung Cấp: <input id="supplier" type="text"></label>
+      <label>Số hóa đơn: <input id="invoiceNumber" type="text"></label>
+      <label>Ngày: <input id="date" type="date"></label>
+    </div>
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th>Mã hàng</th>
+          <th>Số lượng</th>
+          <th>Đơn giá</th>
+          <th>Hành động</th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+    <button type="button" id="addItem">Thêm dòng</button>
+    <button type="button" id="saveInvoice">Lưu hóa đơn</button>
+  </form>
 
-  <table class="info-table">
-    <tr>
-      <td>Nhà cung cấp: <span id="vattuSupplier"></span></td>
-      <td>Số HĐ: <span id="vattuInvoice"></span></td>
-      <td>Ngày: <span id="vattuDate"></span></td>
-    </tr>
-  </table>
-
-  <p><strong>Bộ phận LGHT đề nghị cung cấp:</strong></p>
-  <table id="vattuTable">
-    <thead>
-      <tr>
-        <th>STT</th><th>Mã hàng</th><th>Đơn vị</th><th>Số lượng</th><th>Ghi chú</th>
-      </tr>
-    </thead>
-    <tbody id="vattuBody"></tbody>
-  </table>
-
-  <table class="signature-table">
-    <tr>
-      <td>Người lập đề nghị<br><br><br>(Ký, họ tên)</td>
-      <td>Thủ trưởng bộ phận<br><br><br>(Ký, họ tên)</td>
-      <td>Kế toán trưởng<br><br><br>(Ký, họ tên)</td>
-      <td>Giám đốc<br><br><br>(Ký, họ tên)</td>
-    </tr>
-  </table>
-
-  <button onclick="window.print()" class="no-print">In trực tiếp</button>
   <script src="script.js"></script>
 </body>
 </html>
