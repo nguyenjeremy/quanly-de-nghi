@@ -2,16 +2,62 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Quản lý Đề nghị & Hóa đơn</title>
+  <title>Quản lý phiếu & hóa đơn</title>
   <link rel="stylesheet" href="style.css">
+  <script src="script.js"></script>
+  <script>
+    function loadDashboard() {
+      const data = JSON.parse(localStorage.getItem('invoices') || '[]');
+      const table = document.getElementById('dashTable');
+      table.innerHTML = `
+        <tr>
+          <th>STT</th><th>Nhà cung cấp</th><th>Ngày</th>
+          <th>Tên hàng</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th>
+          <th>Thành tiền</th><th>Nơi nhận</th><th>Hành động</th>
+        </tr>`;
+      if (data.length === 0) {
+        table.innerHTML += `<tr><td colspan="10">Chưa có hóa đơn nào được nhập.</td></tr>`;
+      } else {
+        data.forEach((d, i) => {
+          table.innerHTML += `
+            <tr>
+              <td>${i + 1}</td><td>${d.ncc}</td><td>${d.ngay}</td>
+              <td>${d.tenhang}</td><td>${d.dvt}</td>
+              <td>${d.soluong}</td><td>${d.dongia}</td>
+              <td>${(d.soluong * d.dongia).toLocaleString()}</td><td>${d.noinhan}</td>
+              <td>
+                <button onclick="deleteInvoice(${i}, true)">🗑️</button>
+              </td>
+            </tr>`;
+        });
+      }
+    }
+
+    // ghi đè hàm xóa để load lại dashboard
+    function deleteInvoice(i, reloadIndex = false) {
+      const data = JSON.parse(localStorage.getItem('invoices') || '[]');
+      if (!confirm('Xóa dòng này?')) return;
+      data.splice(i, 1);
+      localStorage.setItem('invoices', JSON.stringify(data));
+      if (reloadIndex) loadDashboard(); else loadInvoices();
+    }
+  </script>
 </head>
-<body>
-  <h1>📋 Quản lý Đề nghị & Hóa đơn</h1>
+<body onload="loadDashboard()">
+  <h1>HỆ THỐNG QUẢN LÝ PHIẾU & HÓA ĐƠN</h1>
+
   <div class="menu">
-    <a href="nhap_hoadon.html" class="btn">🧾 Nhập Hóa đơn bán lẻ</a>
-    <a href="de_nghi_vattu.html" class="btn">🛠️ Đề nghị mua vật tư</a>
-    <a href="de_nghi_thanhtoan.html" class="btn">💰 Đề nghị thanh toán</a>
+    <button onclick="window.location='nhap_hoadon.html'">➕ Nhập hóa đơn bán lẻ</button>
+    <button onclick="window.location='de_nghi_vattu.html'">🧾 Phiếu đề nghị mua vật tư</button>
+    <button onclick="window.location='de_nghi_thanhtoan.html'">💰 Phiếu đề nghị thanh toán</button>
+    <button onclick="window.location='baocao.html'">📊 Xem báo cáo</button>
   </div>
-  <footer>© 2025 Ba Cherry - Gà Production 🐔</footer>
+
+  <h2>Danh sách hóa đơn đã nhập</h2>
+  <table id="dashTable"></table>
+
+  <div class="buttons">
+    <button onclick="localStorage.clear(); loadDashboard()">🧹 Xóa toàn bộ dữ liệu</button>
+  </div>
 </body>
 </html>
