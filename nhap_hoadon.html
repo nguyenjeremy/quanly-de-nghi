@@ -1,39 +1,105 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Nhập hóa đơn bán lẻ</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js"></script>
+  <meta charset="UTF-8" />
+  <title>Nhập hóa đơn</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body onload="loadInvoices()">
-  <h2>HÓA ĐƠN BÁN LẺ</h2>
-
-  <div class="input-area">
-    <input id="ncc" placeholder="Nhà cung cấp">
-    <input id="ngay" type="date">
-    <input id="tenhang" placeholder="Tên hàng">
-    <input id="dvt" placeholder="ĐVT">
-    <input id="soluong" type="number" placeholder="SL">
-    <input id="dongia" type="number" placeholder="Đơn giá">
-    <input id="noinhan" placeholder="Nơi nhận">
-    <button onclick="addInvoice()">Thêm</button>
+<body>
+  <header>
+    <h1>Nhập hóa đơn mới</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
+      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
+      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
+      <a href="baocao.html">Báo cáo</a>
+    </nav>
+  </header>
+  <div class="container">
+    <form id="invoiceForm">
+      <label>Số hóa đơn: <input type="text" id="invoiceNumber" required /></label><br/><br/>
+      <label>Ngày: <input type="date" id="invoiceDate" required /></label><br/><br/>
+      <table>
+        <thead>
+          <tr>
+            <th>STT</th><th>Tên hàng</th><th>Số lượng</th><th>Đơn vị</th><th>Đơn giá</th><th>Tổng</th><th>Nơi nhận</th><th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <button type="button" class="btn" id="addItem">Thêm dòng</button>
+      <br/><br/>
+      <button type="submit" class="btn">Lưu hóa đơn</button>
+    </form>
   </div>
-
-  <table id="invoiceTable">
-    <thead>
-      <tr>
-        <th>STT</th><th>Nhà cung cấp</th><th>Ngày</th>
-        <th>Tên hàng</th><th>ĐVT</th><th>SL</th>
-        <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Xóa</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <div class="buttons">
-    <button onclick="saveInvoices()">Lưu</button>
-    <button onclick="window.location='index.html'">Về menu</button>
-  </div>
+  <script>
+    function addItemRow() {
+      let table = document.getElementById('itemsBody');
+      let rowCount = table.rows.length;
+      let row = table.insertRow();
+      row.insertCell(0).innerText = rowCount + 1;
+      row.insertCell(1).innerHTML = '<input type="text" class="ten" required />';
+      row.insertCell(2).innerHTML = '<input type="number" class="sl" min="1" value="1" style="width:60px" />';
+      row.insertCell(3).innerHTML = '<input type="text" class="dv" style="width:60px" />';
+      row.insertCell(4).innerHTML = '<input type="number" class="dg" step="0.01" value="0" style="width:80px" />';
+      row.insertCell(5).innerText = '0';
+      row.insertCell(6).innerHTML = '<input type="text" class="noiNhan" />';
+      row.insertCell(7).innerHTML = '<button class="btn danger" onclick="deleteRow(this)">Xóa</button>';
+      let slInput = row.querySelector('.sl');
+      let dgInput = row.querySelector('.dg');
+      slInput.addEventListener('input', updateTotal);
+      dgInput.addEventListener('input', updateTotal);
+    }
+    function deleteRow(btn) {
+      let row = btn.parentNode.parentNode;
+      row.parentNode.removeChild(row);
+      updateStt();
+    }
+    function updateStt() {
+      let rows = document.querySelectorAll('#itemsBody tr');
+      for(let i = 0; i < rows.length; i++) {
+        rows[i].cells[0].innerText = i + 1;
+      }
+    }
+    function updateTotal() {
+      let row = this.parentNode.parentNode;
+      let sl = parseFloat(row.querySelector('.sl').value) || 0;
+      let dg = parseFloat(row.querySelector('.dg').value) || 0;
+      row.cells[5].innerText = (sl * dg).toFixed(2);
+    }
+    document.getElementById('addItem').addEventListener('click', addItemRow);
+    addItemRow(); // Initialize first row
+    document.getElementById('invoiceForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const id = document.getElementById('invoiceNumber').value.trim();
+      const date = document.getElementById('invoiceDate').value;
+      if(!id || !date) {
+        alert('Vui lòng nhập số hóa đơn và ngày!');
+        return;
+      }
+      const items = [];
+      let rows = document.querySelectorAll('#itemsBody tr');
+      for(let row of rows) {
+        const ten = row.querySelector('.ten').value;
+        const sl = parseFloat(row.querySelector('.sl').value) || 0;
+        const dv = row.querySelector('.dv').value;
+        const dg = parseFloat(row.querySelector('.dg').value) || 0;
+        const total = sl * dg;
+        const noiNhan = row.querySelector('.noiNhan').value;
+        if(!ten) continue;
+        items.push({ten, sl, dv, dg, total, noiNhan});
+      }
+      if(items.length === 0) {
+        alert('Phải có ít nhất 1 dòng!');
+        return;
+      }
+      let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+      invoices.push({id, date, items});
+      localStorage.setItem('hoadonList', JSON.stringify(invoices));
+      alert('Lưu thành công!');
+      window.location.href = 'index.html';
+    });
+  </script>
 </body>
 </html>
