@@ -1,39 +1,94 @@
 body {
   font-family: "Segoe UI", sans-serif;
-  margin: 20px;
+  background-color: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+header {
+  background-color: #333;
+  color: white;
+  padding: 10px 20px;
+}
+nav a {
+  color: white;
+  margin-right: 15px;
+  text-decoration: none;
+  font-weight: bold;
+}
+nav a:hover {
+  text-decoration: underline;
+}
+.container {
+  width: 95%;
+  max-width: 1000px;
+  margin: 20px auto;
+  background: white;
+  padding: 20px;
+  box-shadow: 0 0 5px #ccc;
 }
 h1, h2 {
   text-align: center;
-  margin: 10px 0;
-}
-nav a {
-  margin-right: 10px;
-  text-decoration: none;
 }
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+  font-size: 14px;
 }
-.info-table, .signature-table {
-  margin-top: 20px;
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
 }
-table, th, td {
-  border: 1px solid #000;
-  padding: 5px;
-  text-align: left;
+th {
+  background-color: #f2f2f2;
 }
-.signature-table td {
+tr:nth-child(even) { background-color: #f9f9f9; }
+tr:hover { background-color: #f1f1f1; }
+.btn {
+  display: inline-block;
+  padding: 8px 12px;
+  margin: 5px 2px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn:hover { background-color: #45a049; }
+.btn.danger { background-color: #f44336; }
+.btn.danger:hover { background-color: #da190b; }
+.btn.secondary { background-color: #008CBA; }
+.btn.secondary:hover { background-color: #007bb5; }
+
+.voucher {
+  margin-bottom: 50px;
+  padding: 15px;
+  border: 1px solid #ccc;
+}
+.voucher h2 {
+  text-align: center;
+  margin-top: 0;
+}
+.signature {
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
   text-align: center;
 }
-.no-print {
-  margin-top: 20px;
+.signature div {
+  width: 25%;
 }
-/* Khổ giấy A4 dọc khi in */
-@page {
-  size: A4 portrait;
-  margin: 20mm;
-}
+
 @media print {
-  .no-print { display: none; }
+  body { background: white; }
+  .btn, nav, header { display: none !important; }
+  .container {
+    box-shadow: none;
+    margin: 0;
+    width: 100%;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
 }
