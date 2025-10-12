@@ -1,28 +1,125 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Quản lý hóa đơn</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="xlsx.full.min.js"></script>
+  <meta charset="UTF-8" />
+  <title>Hệ thống quản lý hóa đơn bán lẻ</title>
+  <link rel="stylesheet" href="style.css" />
   <script src="FileSaver.min.js"></script>
+  <script src="xlsx.full.min.js"></script>
 </head>
 <body>
-  <h1>Quản lý Hóa đơn</h1>
-  <nav>
-    <a href="nhap_hoadon.html">Nhập hóa đơn mới</a> |
-    <a href="baocao.html">Báo cáo</a>
-  </nav>
+  <header>
+    <h1>HỆ THỐNG QUẢN LÝ HÓA ĐƠN BÁN LẺ</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
+      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
+      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
+      <a href="baocao.html">Báo cáo</a>
+    </nav>
+  </header>
 
-  <div>
-    <button id="saveJsonBtn">Lưu ra JSON</button>
-    <button id="loadJsonBtn">Tải từ JSON</button>
-    <input type="file" id="fileInput" accept=".json" style="display:none">
+  <div class="container">
+    <h2>Danh sách hóa đơn bán lẻ</h2>
+    <div id="invoiceTable"></div>
+    <button class="btn danger" id="deleteAll">Xóa toàn bộ</button>
+    <button class="btn secondary" id="backupJSON">Lưu ra JSON</button>
+    <input type="file" id="fileInput" style="display:none" />
+    <button class="btn" id="loadJSON">Tải từ JSON</button>
   </div>
 
-  <h2>Danh sách Hóa đơn</h2>
-  <ul id="invoiceList"></ul>
+  <script>
+    function formatMoney(num) {
+      return Number(num).toLocaleString("vi-VN");
+    }
 
-  <script src="script.js"></script>
+    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+
+    function renderTable() {
+      if (invoices.length === 0) {
+        document.getElementById('invoiceTable').innerHTML = '<p>Chưa có hóa đơn nào.</p>';
+        return;
+      }
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Mã HĐ</th>
+              <th>Ngày</th>
+              <th>Nhà cung cấp</th>
+              <th>Số dòng</th>
+              <th>Tổng tiền</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      invoices.forEach((inv, i) => {
+        let sum = 0;
+        inv.items.forEach(it => sum += it.total);
+        html += `
+          <tr>
+            <td>${inv.id}</td>
+            <td>${inv.date}</td>
+            <td>${inv.ncc}</td>
+            <td>${inv.items.length}</td>
+            <td>${formatMoney(sum)}</td>
+            <td><button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button></td>
+          </tr>
+        `;
+      });
+      html += "</tbody></table>";
+      document.getElementById('invoiceTable').innerHTML = html;
+    }
+
+    function deleteInvoice(index) {
+      if (confirm("Xác nhận xóa hóa đơn này?")) {
+        invoices.splice(index, 1);
+        localStorage.setItem('hoadonList', JSON.stringify(invoices));
+        renderTable();
+      }
+    }
+
+    function deleteAll() {
+      if (confirm("Xác nhận xóa toàn bộ hóa đơn?")) {
+        invoices = [];
+        localStorage.removeItem('hoadonList');
+        renderTable();
+      }
+    }
+
+    function backupJSON() {
+      const blob = new Blob([JSON.stringify(invoices, null, 2)], { type: "application/json" });
+      saveAs(blob, "backup_hoadon.json");
+    }
+
+    function loadJSON() {
+      document.getElementById("fileInput").click();
+    }
+
+    document.getElementById("fileInput").addEventListener("change", function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (Array.isArray(data)) {
+            invoices = data;
+            localStorage.setItem('hoadonList', JSON.stringify(invoices));
+            renderTable();
+          } else alert("File JSON không hợp lệ!");
+        } catch {
+          alert("Lỗi khi đọc file JSON!");
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("deleteAll").addEventListener("click", deleteAll);
+    document.getElementById("backupJSON").addEventListener("click", backupJSON);
+    document.getElementById("loadJSON").addEventListener("click", loadJSON);
+    renderTable();
+  </script>
 </body>
 </html>
