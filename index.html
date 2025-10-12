@@ -1,63 +1,95 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Quản lý phiếu & hóa đơn</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="script.js"></script>
+  <meta charset="UTF-8" />
+  <title>Hệ thống quản lý hóa đơn</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="FileSaver.min.js"></script>
+  <script src="xlsx.full.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Hệ thống quản lý hóa đơn</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
+      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
+      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
+      <a href="baocao.html">Báo cáo</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h2>Danh sách hóa đơn</h2>
+    <div id="invoiceTable"></div>
+    <button class="btn danger" id="deleteAll">Xóa toàn bộ</button>
+    <button class="btn secondary" id="backupJSON">Lưu ra JSON</button>
+    <input type="file" id="fileInput" style="display:none" />
+    <button class="btn" id="loadJSON">Tải từ JSON</button>
+  </div>
   <script>
-    function loadDashboard() {
-      const data = JSON.parse(localStorage.getItem('invoices') || '[]');
-      const table = document.getElementById('dashTable');
-      table.innerHTML = `
-        <tr>
-          <th>STT</th><th>Nhà cung cấp</th><th>Ngày</th>
-          <th>Tên hàng</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th>
-          <th>Thành tiền</th><th>Nơi nhận</th><th>Hành động</th>
-        </tr>`;
-      if (data.length === 0) {
-        table.innerHTML += `<tr><td colspan="10">Chưa có hóa đơn nào được nhập.</td></tr>`;
-      } else {
-        data.forEach((d, i) => {
-          table.innerHTML += `
-            <tr>
-              <td>${i + 1}</td><td>${d.ncc}</td><td>${d.ngay}</td>
-              <td>${d.tenhang}</td><td>${d.dvt}</td>
-              <td>${d.soluong}</td><td>${d.dongia}</td>
-              <td>${(d.soluong * d.dongia).toLocaleString()}</td><td>${d.noinhan}</td>
-              <td>
-                <button onclick="deleteInvoice(${i}, true)">🗑️</button>
-              </td>
-            </tr>`;
-        });
+    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    function renderTable() {
+      let html = '<table><thead><tr><th>Số HĐ</th><th>Ngày</th><th>Số dòng</th><th>Hành động</th></tr></thead><tbody>';
+      for(let i = 0; i < invoices.length; i++) {
+        const inv = invoices[i];
+        html += `<tr>
+                   <td>${inv.id}</td>
+                   <td>${inv.date}</td>
+                   <td>${inv.items.length}</td>
+                   <td>
+                     <button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button>
+                   </td>
+                 </tr>`;
+      }
+      html += '</tbody></table>';
+      document.getElementById('invoiceTable').innerHTML = html;
+    }
+    function deleteInvoice(index) {
+      if(confirm('Xác nhận xóa hóa đơn này?')) {
+        invoices.splice(index, 1);
+        localStorage.setItem('hoadonList', JSON.stringify(invoices));
+        renderTable();
       }
     }
-
-    // ghi đè hàm xóa để load lại dashboard
-    function deleteInvoice(i, reloadIndex = false) {
-      const data = JSON.parse(localStorage.getItem('invoices') || '[]');
-      if (!confirm('Xóa dòng này?')) return;
-      data.splice(i, 1);
-      localStorage.setItem('invoices', JSON.stringify(data));
-      if (reloadIndex) loadDashboard(); else loadInvoices();
+    function deleteAll() {
+      if(confirm('Xác nhận xóa toàn bộ hóa đơn?')) {
+        invoices = [];
+        localStorage.removeItem('hoadonList');
+        renderTable();
+      }
     }
+    function backupJSON() {
+      const data = JSON.stringify(invoices, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      saveAs(blob, 'backup_hoadon.json');
+    }
+    function loadJSON() {
+      document.getElementById('fileInput').click();
+    }
+    document.getElementById('fileInput').addEventListener('change', function(e){
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const obj = JSON.parse(evt.target.result);
+          if(Array.isArray(obj)) {
+            invoices = obj;
+            localStorage.setItem('hoadonList', JSON.stringify(invoices));
+            renderTable();
+          } else {
+            alert('Dữ liệu không hợp lệ!');
+          }
+        } catch(err) {
+          alert('Lỗi khi đọc file!');
+        }
+      };
+      reader.readAsText(file);
+    });
+    document.getElementById('deleteAll').addEventListener('click', deleteAll);
+    document.getElementById('backupJSON').addEventListener('click', backupJSON);
+    document.getElementById('loadJSON').addEventListener('click', loadJSON);
+    renderTable();
   </script>
-</head>
-<body onload="loadDashboard()">
-  <h1>HỆ THỐNG QUẢN LÝ PHIẾU & HÓA ĐƠN</h1>
-
-  <div class="menu">
-    <button onclick="window.location='nhap_hoadon.html'">➕ Nhập hóa đơn bán lẻ</button>
-    <button onclick="window.location='de_nghi_vattu.html'">🧾 Phiếu đề nghị mua vật tư</button>
-    <button onclick="window.location='de_nghi_thanhtoan.html'">💰 Phiếu đề nghị thanh toán</button>
-    <button onclick="window.location='baocao.html'">📊 Xem báo cáo</button>
-  </div>
-
-  <h2>Danh sách hóa đơn đã nhập</h2>
-  <table id="dashTable"></table>
-
-  <div class="buttons">
-    <button onclick="localStorage.clear(); loadDashboard()">🧹 Xóa toàn bộ dữ liệu</button>
-  </div>
 </body>
 </html>
