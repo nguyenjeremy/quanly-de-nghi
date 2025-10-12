@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đề nghị thanh toán</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="FileSaver.min.js"></script>
+  <script src="xlsx.full.min.js"></script>
+  <script src="script.js"></script>
+</head>
+<body>
+  <h1>💰 Phiếu Đề nghị Thanh toán</h1>
+  <div>
+    <button onclick="showInvoices(true)">🧾 Chọn hóa đơn để thanh toán</button>
+    <button onclick="generateThanhToan()">📤 Xuất đề nghị thanh toán</button>
+  </div>
+  <div id="invoiceList"></div>
+  <a href="index.html" class="back">⬅ Quay lại</a>
+</body>
+</html>
