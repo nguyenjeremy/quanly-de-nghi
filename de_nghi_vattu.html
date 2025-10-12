@@ -1,84 +1,42 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Đề nghị vật tư</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="FileSaver.min.js"></script>
-  <script src="xlsx.full.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Đề nghị mua vật tư</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Phiếu đề nghị vật tư</h1>
-    <nav>
-      <a href="index.html">Trang chủ</a>
-      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
-      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
-      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
-      <a href="baocao.html">Báo cáo</a>
-    </nav>
-  </header>
-  <div class="container">
-    <button class="btn" id="exportExcel">Xuất Excel</button>
-    <button class="btn" id="printBtn">In A4</button>
-    <div id="vouchersContainer"></div>
-  </div>
-  <script>
-    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    let vouchersContainer = document.getElementById('vouchersContainer');
-    invoices.forEach(inv => {
-      inv.items.forEach(item => {
-        let div = document.createElement('div');
-        div.className = 'voucher';
-        let html = '<h3>PHIẾU ĐỀ NGHỊ MUA VẬT TƯ</h3>';
-        html += '<table>';
-        html += `<tr><td>Mã hóa đơn:</td><td>${inv.id}</td></tr>`;
-        html += `<tr><td>Ngày:</td><td>${inv.date}</td></tr>`;
-        html += `<tr><td>Tên vật tư:</td><td>${item.ten}</td></tr>`;
-        html += `<tr><td>Số lượng:</td><td>${item.sl} ${item.dv}</td></tr>`;
-        html += `<tr><td>Đơn giá:</td><td>${item.dg}</td></tr>`;
-        html += `<tr><td>Nơi nhận:</td><td>${item.noiNhan}</td></tr>`;
-        html += '</table>';
-        html += '<div class="signature">';
-        html += '<div>Người lập phiếu<br><br>(ký, họ tên)</div>';
-        html += '<div>Kiểm soát<br><br>(ký, họ tên)</div>';
-        html += '<div>Kế toán trưởng<br><br>(ký, họ tên)</div>';
-        html += '<div>Giám đốc<br><br>(ký, họ tên)</div>';
-        html += '</div>';
-        div.innerHTML = html;
-        vouchersContainer.appendChild(div);
-      });
-    });
-    document.getElementById('exportExcel').addEventListener('click', function(){
-      let wb = XLSX.utils.book_new();
-      let sheetNum = 1;
-      invoices.forEach(inv => {
-        inv.items.forEach(item => {
-          let ws_name = 'PDNV' + sheetNum++;
-          let ws_data = [
-            ['PHIẾU ĐỀ NGHỊ MUA VẬT TƯ'],
-            ['Mã hóa đơn:', inv.id],
-            ['Ngày:', inv.date],
-            ['Tên vật tư:', item.ten],
-            ['Số lượng:', item.sl, 'Đơn vị:', item.dv],
-            ['Đơn giá:', item.dg],
-            ['Nơi nhận:', item.noiNhan],
-            [],
-            ['Người lập phiếu','Kiểm soát','Kế toán trưởng','Giám đốc'],
-            ['(ký, họ tên)','(ký, họ tên)','(ký, họ tên)','(ký, họ tên)']
-          ];
-          let ws = XLSX.utils.aoa_to_sheet(ws_data);
-          ws['!cols'] = [{wch:10},{wch:10},{wch:10},{wch:10}];
-          ws['!pageSetup'] = { orientation: "portrait", paperSize: 9 };
-          XLSX.utils.book_append_sheet(wb, ws, ws_name);
-        });
-      });
-      let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-      saveAs(new Blob([wbout],{type:"application/octet-stream"}), 'de_nghi_vattu.xlsx');
-    });
-    document.getElementById('printBtn').addEventListener('click', function(){
-      window.print();
-    });
-  </script>
+  <h2>ĐỀ NGHỊ MUA VẬT TƯ</h2>
+  <a href="index.html">&larr; Trở về Trang chủ</a>
+
+  <table class="info-table">
+    <tr>
+      <td>Nhà cung cấp: <span id="vattuSupplier"></span></td>
+      <td>Số HĐ: <span id="vattuInvoice"></span></td>
+      <td>Ngày: <span id="vattuDate"></span></td>
+    </tr>
+  </table>
+
+  <p><strong>Bộ phận LGHT đề nghị cung cấp:</strong></p>
+  <table id="vattuTable">
+    <thead>
+      <tr>
+        <th>STT</th><th>Mã hàng</th><th>Đơn vị</th><th>Số lượng</th><th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody id="vattuBody"></tbody>
+  </table>
+
+  <table class="signature-table">
+    <tr>
+      <td>Người lập đề nghị<br><br><br>(Ký, họ tên)</td>
+      <td>Thủ trưởng bộ phận<br><br><br>(Ký, họ tên)</td>
+      <td>Kế toán trưởng<br><br><br>(Ký, họ tên)</td>
+      <td>Giám đốc<br><br><br>(Ký, họ tên)</td>
+    </tr>
+  </table>
+
+  <button onclick="window.print()" class="no-print">In trực tiếp</button>
+  <script src="script.js"></script>
 </body>
 </html>
