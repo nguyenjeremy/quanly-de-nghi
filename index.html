@@ -1,95 +1,53 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Hệ thống quản lý hóa đơn</title>
-  <link rel="stylesheet" href="style.css" />
-  <script src="FileSaver.min.js"></script>
-  <script src="xlsx.full.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Quản lý Hóa đơn và Phiếu</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Hệ thống quản lý hóa đơn</h1>
-    <nav>
-      <a href="index.html">Trang chủ</a>
-      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
-      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
-      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
-      <a href="baocao.html">Báo cáo</a>
-    </nav>
-  </header>
-  <div class="container">
-    <h2>Danh sách hóa đơn</h2>
-    <div id="invoiceTable"></div>
-    <button class="btn danger" id="deleteAll">Xóa toàn bộ</button>
-    <button class="btn secondary" id="backupJSON">Lưu ra JSON</button>
-    <input type="file" id="fileInput" style="display:none" />
-    <button class="btn" id="loadJSON">Tải từ JSON</button>
-  </div>
-  <script>
-    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    function renderTable() {
-      let html = '<table><thead><tr><th>Số HĐ</th><th>Ngày</th><th>Số dòng</th><th>Hành động</th></tr></thead><tbody>';
-      for(let i = 0; i < invoices.length; i++) {
-        const inv = invoices[i];
-        html += `<tr>
-                   <td>${inv.id}</td>
-                   <td>${inv.date}</td>
-                   <td>${inv.items.length}</td>
-                   <td>
-                     <button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button>
-                   </td>
-                 </tr>`;
-      }
-      html += '</tbody></table>';
-      document.getElementById('invoiceTable').innerHTML = html;
-    }
-    function deleteInvoice(index) {
-      if(confirm('Xác nhận xóa hóa đơn này?')) {
-        invoices.splice(index, 1);
-        localStorage.setItem('hoadonList', JSON.stringify(invoices));
-        renderTable();
-      }
-    }
-    function deleteAll() {
-      if(confirm('Xác nhận xóa toàn bộ hóa đơn?')) {
-        invoices = [];
-        localStorage.removeItem('hoadonList');
-        renderTable();
-      }
-    }
-    function backupJSON() {
-      const data = JSON.stringify(invoices, null, 2);
-      const blob = new Blob([data], { type: "application/json" });
-      saveAs(blob, 'backup_hoadon.json');
-    }
-    function loadJSON() {
-      document.getElementById('fileInput').click();
-    }
-    document.getElementById('fileInput').addEventListener('change', function(e){
-      const file = e.target.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        try {
-          const obj = JSON.parse(evt.target.result);
-          if(Array.isArray(obj)) {
-            invoices = obj;
-            localStorage.setItem('hoadonList', JSON.stringify(invoices));
-            renderTable();
-          } else {
-            alert('Dữ liệu không hợp lệ!');
-          }
-        } catch(err) {
-          alert('Lỗi khi đọc file!');
-        }
-      };
-      reader.readAsText(file);
-    });
-    document.getElementById('deleteAll').addEventListener('click', deleteAll);
-    document.getElementById('backupJSON').addEventListener('click', backupJSON);
-    document.getElementById('loadJSON').addEventListener('click', loadJSON);
-    renderTable();
-  </script>
+  <h1>Nhập Hóa đơn bán lẻ</h1>
+  <label>Ngày: <input type="date" id="invoiceDate"></label>
+  <label>Nhà cung cấp: <input type="text" id="supplier" placeholder="Tên nhà cung cấp"></label>
+  <table id="invoiceTable">
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Tên hàng</th>
+        <th>Số lượng</th>
+        <th>Đơn vị tính</th>
+        <th>Đơn giá</th>
+        <th>Nơi nhận</th>
+        <th>Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody id="invoiceBody">
+      <!-- Dòng hàng sẽ được thêm tự động -->
+    </tbody>
+  </table>
+  <button id="addRowBtn">Thêm dòng hàng</button>
+  <button id="saveBtn">Lưu ra file JSON</button>
+  <button id="loadBtn">Tải từ file JSON</button>
+  <input type="file" id="fileInput" accept=".json" style="display:none;">
+  <button id="printInvoiceBtn">In Hóa đơn</button>
+  <button id="exportExcelBtn">Xuất Excel</button>
+
+  <!-- Nơi hiển thị ô chọn phiếu thanh toán -->
+  <h2>Danh sách các mặt hàng đã nhập</h2>
+  <table id="allItemsTable">
+    <thead>
+      <tr>
+        <th>Chọn</th><th>STT</th><th>NCC</th><th>Tên hàng</th><th>Số lượng</th><th>Đơn vị</th><th>Đơn giá</th><th>Nơi nhận</th><th>Thành tiền</th>
+      </tr>
+    </thead>
+    <tbody id="allItemsBody">
+      <!-- Tất cả mặt hàng từ các hóa đơn -->
+    </tbody>
+  </table>
+  <button id="printPurchaseBtn">Xuất Phiếu Đề nghị mua vật tư</button>
+  <button id="printPaymentBtn">Xuất Phiếu Đề nghị thanh toán</button>
+
+  <script src="script.js"></script>
 </body>
 </html>
