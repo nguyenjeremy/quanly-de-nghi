@@ -1,20 +1,133 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Đề nghị thanh toán</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css" />
   <script src="FileSaver.min.js"></script>
   <script src="xlsx.full.min.js"></script>
-  <script src="script.js"></script>
 </head>
 <body>
-  <h1>💰 Phiếu Đề nghị Thanh toán</h1>
-  <div>
-    <button onclick="showInvoices(true)">🧾 Chọn hóa đơn để thanh toán</button>
-    <button onclick="generateThanhToan()">📤 Xuất đề nghị thanh toán</button>
+  <header>
+    <h1>Phiếu đề nghị thanh toán</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
+      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
+      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
+      <a href="baocao.html">Báo cáo</a>
+    </nav>
+  </header>
+  <div class="container">
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th>Chọn</th><th>Mã HĐ</th><th>Tên vật tư</th><th>SL</th><th>ĐVT</th><th>Đơn giá</th><th>Nơi nhận</th><th>Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody id="itemsBody"></tbody>
+    </table>
+    <button class="btn" id="generateVoucher">Tạo phiếu</button>
+
+    <div id="paymentVoucher" style="display:none; margin-top:20px;">
+      <button class="btn" id="exportExcel">Xuất Excel</button>
+      <button class="btn" id="printBtn">In A4</button>
+      <div id="voucherContent"></div>
+    </div>
   </div>
-  <div id="invoiceList"></div>
-  <a href="index.html" class="back">⬅ Quay lại</a>
+  <script>
+    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    let tableBody = document.getElementById('itemsBody');
+    invoices.forEach(inv => {
+      inv.items.forEach(item => {
+        let row = tableBody.insertRow();
+        let chk = document.createElement('input');
+        chk.type = 'checkbox';
+        let cell0 = row.insertCell();
+        cell0.appendChild(chk);
+        row.insertCell().innerText = inv.id;
+        row.insertCell().innerText = item.ten;
+        row.insertCell().innerText = item.sl;
+        row.insertCell().innerText = item.dv;
+        row.insertCell().innerText = item.dg;
+        row.insertCell().innerText = item.noiNhan;
+        row.insertCell().innerText = (item.sl * item.dg).toFixed(2);
+      });
+    });
+    document.getElementById('generateVoucher').addEventListener('click', function(){
+      let selected = [];
+      let rows = tableBody.rows;
+      for(let i = 0; i < rows.length; i++) {
+        let row = rows[i];
+        let chk = row.cells[0].firstChild;
+        if(chk.checked) {
+          selected.push({
+            id: row.cells[1].innerText,
+            ten: row.cells[2].innerText,
+            sl: row.cells[3].innerText,
+            dv: row.cells[4].innerText,
+            dg: row.cells[5].innerText,
+            noiNhan: row.cells[6].innerText,
+            thanhTien: row.cells[7].innerText
+          });
+        }
+      }
+      if(selected.length === 0) {
+        alert('Chưa chọn dòng nào');
+        return;
+      }
+      document.getElementById('itemsTable').style.display = 'none';
+      document.getElementById('generateVoucher').style.display = 'none';
+      document.getElementById('paymentVoucher').style.display = 'block';
+      let voucherContent = document.getElementById('voucherContent');
+      let html = '<h3>PHIẾU ĐỀ NGHỊ THANH TOÁN</h3>';
+      html += '<table><tr><th>Mã HĐ</th><th>Tên vật tư</th><th>SL</th><th>ĐVT</th><th>Đơn giá</th><th>Nơi nhận</th><th>Thành tiền</th></tr>';
+      let totalSum = 0;
+      selected.forEach(item => {
+        totalSum += parseFloat(item.thanhTien);
+        html += `<tr>
+                   <td>${item.id}</td><td>${item.ten}</td><td>${item.sl}</td><td>${item.dv}</td>
+                   <td>${item.dg}</td><td>${item.noiNhan}</td><td>${item.thanhTien}</td>
+                 </tr>`;
+      });
+      html += `<tr>
+                 <td colspan="6" style="text-align:right;"><strong>Tổng cộng:</strong></td>
+                 <td>${totalSum.toFixed(2)}</td>
+               </tr>`;
+      html += '</table>';
+      html += '<div class="signature">';
+      html += '<div>Người lập phiếu<br><br>(ký, họ tên)</div>';
+      html += '<div>Kiểm soát<br><br>(ký, họ tên)</div>';
+      html += '<div>Kế toán trưởng<br><br>(ký, họ tên)</div>';
+      html += '<div>Giám đốc<br><br>(ký, họ tên)</div>';
+      html += '</div>';
+      voucherContent.innerHTML = html;
+
+      document.getElementById('exportExcel').addEventListener('click', function(){
+        let wb = XLSX.utils.book_new();
+        let ws_data = [
+          ['PHIẾU ĐỀ NGHỊ THANH TOÁN'],
+          []
+        ];
+        ws_data.push(['Mã HĐ', 'Tên vật tư', 'Số lượng', 'Đơn vị', 'Đơn giá', 'Nơi nhận', 'Thành tiền']);
+        selected.forEach(item => {
+          ws_data.push([item.id, item.ten, item.sl, item.dv, item.dg, item.noiNhan, item.thanhTien]);
+        });
+        ws_data.push(['','','','','Tổng cộng', totalSum.toFixed(2)]);
+        ws_data.push([]);
+        ws_data.push(['Người lập phiếu','Kiểm soát','Kế toán trưởng','Giám đốc']);
+        ws_data.push(['(ký, họ tên)','(ký, họ tên)','(ký, họ tên)','(ký, họ tên)']);
+        let ws = XLSX.utils.aoa_to_sheet(ws_data);
+        ws['!cols'] = [{wch:10},{wch:20},{wch:8},{wch:8},{wch:10},{wch:15},{wch:12}];
+        ws['!pageSetup'] = { orientation: 'portrait', paperSize: 9 };
+        XLSX.utils.book_append_sheet(wb, ws, 'ThanhToan');
+        let wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+        saveAs(new Blob([wbout], {type:"application/octet-stream"}), 'de_nghi_thanhtoan.xlsx');
+      });
+      document.getElementById('printBtn').addEventListener('click', function(){
+        window.print();
+      });
+    });
+  </script>
 </body>
 </html>
