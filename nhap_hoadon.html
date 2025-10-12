@@ -2,29 +2,38 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Nhập Hóa đơn bán lẻ</title>
+  <title>Nhập hóa đơn bán lẻ</title>
   <link rel="stylesheet" href="style.css">
-  <script src="FileSaver.min.js"></script>
-  <script src="xlsx.full.min.js"></script>
   <script src="script.js"></script>
 </head>
-<body>
-  <h1>🧾 Nhập Hóa đơn bán lẻ</h1>
-  <form id="invoiceForm">
-    <label>Ngày hóa đơn: <input type="date" id="ngayHD"></label>
-    <label>Nhà cung cấp (NCC): <input type="text" id="ncc"></label>
-    <label>Nơi nhận chung: <input type="text" id="noinhan"></label>
-    <table id="invoiceTable">
-      <thead>
-        <tr>
-          <th>Tên hàng</th><th>ĐVT</th><th>Số lượng</th><th>Đơn giá</th><th>Nơi nhận</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button type="button" onclick="addRow()">➕ Thêm dòng</button>
-    <button type="button" onclick="saveInvoice()">💾 Lưu hóa đơn</button>
-  </form>
-  <a href="index.html" class="back">⬅ Quay lại</a>
+<body onload="loadInvoices()">
+  <h2>HÓA ĐƠN BÁN LẺ</h2>
+
+  <div class="input-area">
+    <input id="ncc" placeholder="Nhà cung cấp">
+    <input id="ngay" type="date">
+    <input id="tenhang" placeholder="Tên hàng">
+    <input id="dvt" placeholder="ĐVT">
+    <input id="soluong" type="number" placeholder="SL">
+    <input id="dongia" type="number" placeholder="Đơn giá">
+    <input id="noinhan" placeholder="Nơi nhận">
+    <button onclick="addInvoice()">Thêm</button>
+  </div>
+
+  <table id="invoiceTable">
+    <thead>
+      <tr>
+        <th>STT</th><th>Nhà cung cấp</th><th>Ngày</th>
+        <th>Tên hàng</th><th>ĐVT</th><th>SL</th>
+        <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Xóa</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div class="buttons">
+    <button onclick="saveInvoices()">Lưu</button>
+    <button onclick="window.location='index.html'">Về menu</button>
+  </div>
 </body>
 </html>
