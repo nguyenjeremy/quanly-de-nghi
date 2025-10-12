@@ -1,21 +1,73 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Báo cáo hóa đơn</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Báo cáo chi tiết hóa đơn bán lẻ</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>Báo cáo Hóa đơn</h1>
-  <a href="index.html">&larr; Trở về Trang chủ</a>
+  <header>
+    <h1>BÁO CÁO CHI TIẾT HÓA ĐƠN BÁN LẺ</h1>
+    <nav>
+      <a href="index.html">Trang chủ</a>
+      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
+      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
+      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
+      <a href="baocao.html">Báo cáo</a>
+    </nav>
+  </header>
 
-  <table>
-    <thead>
-      <tr><th>Số HĐ</th><th>Nhà cung cấp</th><th>Ngày</th><th>Tổng tiền</th></tr>
-    </thead>
-    <tbody id="reportBody"></tbody>
-  </table>
+  <div class="container" id="report"></div>
 
-  <script src="script.js"></script>
+  <script>
+    const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    const reportDiv = document.getElementById('report');
+
+    function formatMoney(num) {
+      return Number(num).toLocaleString("vi-VN");
+    }
+
+    if (invoices.length === 0) {
+      reportDiv.innerHTML = '<p>Chưa có hóa đơn bán lẻ nào.</p>';
+    } else {
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th>
+              <th>Tên vật tư</th><th>ĐVT</th><th>SL</th>
+              <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th>
+            </tr>
+          </thead><tbody>
+      `;
+      let grandTotal = 0;
+      invoices.forEach(inv => {
+        inv.items.forEach(it => {
+          grandTotal += it.total;
+          html += `
+            <tr>
+              <td>${inv.id}</td>
+              <td>${inv.date}</td>
+              <td>${inv.ncc}</td>
+              <td>${it.ten}</td>
+              <td>${it.dv}</td>
+              <td>${it.sl}</td>
+              <td>${formatMoney(it.dg)}</td>
+              <td>${formatMoney(it.total)}</td>
+              <td>${it.noiNhan}</td>
+            </tr>
+          `;
+        });
+      });
+      html += `
+          <tr>
+            <td colspan="7" style="text-align:right"><b>Tổng cộng:</b></td>
+            <td colspan="2"><b>${formatMoney(grandTotal)} VNĐ</b></td>
+          </tr>
+        </tbody></table>
+      `;
+      reportDiv.innerHTML = html;
+    }
+  </script>
 </body>
 </html>
