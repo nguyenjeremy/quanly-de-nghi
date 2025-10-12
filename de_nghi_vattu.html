@@ -24,86 +24,116 @@
       <option value="HT">Công ty TNHH MTV Gạch Tuynel Hiếu Thảo</option>
       <option value="TP">Công ty TNHH Gạch Tuynel Thanh Phong</option>
     </select>
-    <button class="btn" id="printAll">In tất cả phiếu</button>
+    <br/><br/>
 
-    <div id="vouchers"></div>
+    <h3>Danh sách hóa đơn bán lẻ</h3>
+    <table id="invoiceTable">
+      <thead>
+        <tr><th>Chọn</th><th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>Số dòng</th><th>Tổng tiền</th></tr>
+      </thead>
+      <tbody id="invoiceBody"></tbody>
+    </table>
+
+    <button class="btn" id="createVoucher">Tạo phiếu đề nghị</button>
+
+    <div id="voucherContainer" style="display:none;margin-top:30px;">
+      <button class="btn" id="printBtn">In A4</button>
+      <div id="voucher"></div>
+    </div>
   </div>
 
   <script>
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    const vouchers = document.getElementById('vouchers');
+    const body = document.getElementById('invoiceBody');
+    const voucherContainer = document.getElementById('voucherContainer');
+    const voucherDiv = document.getElementById('voucher');
 
     function formatMoney(num) {
-      return Number(num).toLocaleString("vi-VN");
+      return Number(num).toLocaleString('vi-VN');
     }
 
-    function getToday() {
-      const d = new Date();
-      return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
-    }
-
-    function renderVouchers() {
-      vouchers.innerHTML = '';
-      invoices.forEach((inv, i) => {
+    function loadTable() {
+      if (invoices.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center">Chưa có hóa đơn bán lẻ nào</td></tr>';
+        return;
+      }
+      invoices.forEach(inv => {
         const total = inv.items.reduce((s, it) => s + it.total, 0);
-        const soPhieu = `${i + 1}.${inv.date.split('-').reverse().join('.')}/DNVT`;
-        let html = `
+        const row = body.insertRow();
+        row.insertCell().innerHTML = '<input type="radio" name="chonHD">';
+        row.insertCell().innerText = inv.id;
+        row.insertCell().innerText = inv.date;
+        row.insertCell().innerText = inv.ncc;
+        row.insertCell().innerText = inv.items.length;
+        row.insertCell().innerText = formatMoney(total);
+      });
+    }
+
+    document.getElementById('createVoucher').addEventListener('click', () => {
+      const selected = document.querySelector('#invoiceBody input[type=radio]:checked');
+      if (!selected) {
+        alert('Vui lòng chọn một hóa đơn!');
+        return;
+      }
+
+      const row = selected.closest('tr');
+      const id = row.cells[1].innerText;
+      const invoice = invoices.find(x => x.id === id);
+      const total = invoice.items.reduce((s, it) => s + it.total, 0);
+      const cty = document.getElementById('companySelect').selectedOptions[0].text;
+      const soPhieu = `${id.replace('BL','')}.${invoice.date.split('-').reverse().join('.')}/DNVT`;
+
+      let html = `
         <div class="voucher">
           <h2>PHIẾU ĐỀ NGHỊ MUA VẬT TƯ</h2>
-          <p><b>Đơn vị:</b> <span class="ctyName"></span></p>
+          <p><b>Đơn vị:</b> ${cty}</p>
           <p><b>Số phiếu:</b> ${soPhieu}</p>
-          <p><b>Ngày:</b> ${inv.date}</p>
-          <p><b>Nhà cung cấp:</b> ${inv.ncc}</p>
+          <p><b>Ngày:</b> ${invoice.date}</p>
+          <p><b>Nhà cung cấp:</b> ${invoice.ncc}</p>
           <table>
             <thead>
               <tr>
-                <th>STT</th><th>Tên vật tư</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th>
+                <th>STT</th><th>Tên vật tư</th><th>ĐVT</th><th>SL</th>
+                <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th>
               </tr>
-            </thead>
-            <tbody>
-        `;
-        inv.items.forEach((it, idx) => {
-          html += `
-            <tr>
-              <td>${idx + 1}</td>
-              <td>${it.ten}</td>
-              <td>${it.dv}</td>
-              <td>${it.sl}</td>
-              <td>${formatMoney(it.dg)}</td>
-              <td>${formatMoney(it.total)}</td>
-              <td>${it.noiNhan}</td>
-            </tr>
-          `;
-        });
+            </thead><tbody>
+      `;
+      invoice.items.forEach((it, idx) => {
         html += `
-            <tr>
-              <td colspan="5" style="text-align:right"><b>Tổng cộng:</b></td>
-              <td colspan="2"><b>${formatMoney(total)}</b></td>
-            </tr>
-            </tbody>
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${it.ten}</td>
+            <td>${it.dv}</td>
+            <td>${it.sl}</td>
+            <td>${formatMoney(it.dg)}</td>
+            <td>${formatMoney(it.total)}</td>
+            <td>${it.noiNhan}</td>
+          </tr>
+        `;
+      });
+      html += `
+          <tr>
+            <td colspan="5" style="text-align:right"><b>Tổng cộng:</b></td>
+            <td colspan="2"><b>${formatMoney(total)} VNĐ</b></td>
+          </tr>
+          </tbody>
           </table>
+
           <div class="signature">
+            <div>Người lập phiếu<br><br>(ký, ghi rõ họ tên)</div>
             <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
-            <div>Người kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
-            <div>Kế toán trưởng<br><br>(ký, ghi rõ họ tên)</div>
+            <div>Kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
             <div>Giám đốc<br><br>(ký, ghi rõ họ tên)</div>
           </div>
-        </div>`;
-        vouchers.insertAdjacentHTML('beforeend', html);
-      });
-      updateCompanyName();
-    }
+        </div>
+      `;
+      voucherDiv.innerHTML = html;
+      voucherContainer.style.display = 'block';
+      window.scrollTo(0, document.body.scrollHeight);
+    });
 
-    function updateCompanyName() {
-      const cty = document.getElementById('companySelect');
-      const name = cty.options[cty.selectedIndex].text;
-      document.querySelectorAll('.ctyName').forEach(el => el.innerText = name);
-    }
-
-    document.getElementById('companySelect').addEventListener('change', updateCompanyName);
-    document.getElementById('printAll').addEventListener('click', () => window.print());
-
-    renderVouchers();
+    document.getElementById('printBtn').addEventListener('click', () => window.print());
+    loadTable();
   </script>
 </body>
 </html>
