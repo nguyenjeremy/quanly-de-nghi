@@ -1,49 +1,21 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Báo cáo tổng hợp</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Báo cáo hóa đơn</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Báo cáo tổng hợp</h1>
-    <nav>
-      <a href="index.html">Trang chủ</a>
-      <a href="nhap_hoadon.html">Nhập hóa đơn</a>
-      <a href="de_nghi_vattu.html">Đề nghị vật tư</a>
-      <a href="de_nghi_thanhtoan.html">Đề nghị thanh toán</a>
-      <a href="baocao.html">Báo cáo</a>
-    </nav>
-  </header>
-  <div class="container">
-    <div id="report"></div>
-  </div>
-  <script>
-    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    let reportDiv = document.getElementById('report');
-    if(invoices.length === 0) {
-      reportDiv.innerHTML = '<p>Chưa có hóa đơn.</p>';
-    } else {
-      let totalInvoices = invoices.length;
-      let html = `<p><strong>Tổng số hóa đơn:</strong> ${totalInvoices}</p>`;
-      html += '<table><thead><tr><th>Số HĐ</th><th>Ngày</th><th>Số dòng</th><th>Tổng tiền</th></tr></thead><tbody>';
-      let grandTotal = 0;
-      invoices.forEach(inv => {
-        let sum = 0;
-        inv.items.forEach(item => sum += item.sl * item.dg);
-        grandTotal += sum;
-        html += `<tr>
-                   <td>${inv.id}</td>
-                   <td>${inv.date}</td>
-                   <td>${inv.items.length}</td>
-                   <td>${sum.toFixed(2)}</td>
-                 </tr>`;
-      });
-      html += '</tbody></table>';
-      html += `<p><strong>Tổng cộng tiền:</strong> ${grandTotal.toFixed(2)}</p>`;
-      reportDiv.innerHTML = html;
-    }
-  </script>
+  <h1>Báo cáo Hóa đơn</h1>
+  <a href="index.html">&larr; Trở về Trang chủ</a>
+
+  <table>
+    <thead>
+      <tr><th>Số HĐ</th><th>Nhà cung cấp</th><th>Ngày</th><th>Tổng tiền</th></tr>
+    </thead>
+    <tbody id="reportBody"></tbody>
+  </table>
+
+  <script src="script.js"></script>
 </body>
 </html>
