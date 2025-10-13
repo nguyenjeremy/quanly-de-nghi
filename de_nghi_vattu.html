@@ -29,7 +29,7 @@
     <h3>Danh sách hóa đơn bán lẻ</h3>
     <table id="invoiceTable">
       <thead>
-        <tr><th>Chọn</th><th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>Số dòng</th><th>Tổng tiền</th></tr>
+        <tr><th>Chọn</th><th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>SĐT</th><th>Số dòng</th><th>Tổng tiền</th></tr>
       </thead>
       <tbody id="invoiceBody"></tbody>
     </table>
@@ -45,8 +45,6 @@
   <script>
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
     const body = document.getElementById('invoiceBody');
-    const voucherContainer = document.getElementById('voucherContainer');
-    const voucherDiv = document.getElementById('voucher');
 
     function formatMoney(num) {
       return Number(num).toLocaleString('vi-VN');
@@ -54,7 +52,7 @@
 
     function loadTable() {
       if (invoices.length === 0) {
-        body.innerHTML = '<tr><td colspan="6" style="text-align:center">Chưa có hóa đơn bán lẻ nào</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" style="text-align:center">Chưa có hóa đơn bán lẻ nào</td></tr>';
         return;
       }
       invoices.forEach(inv => {
@@ -63,7 +61,8 @@
         row.insertCell().innerHTML = '<input type="radio" name="chonHD">';
         row.insertCell().innerText = inv.id;
         row.insertCell().innerText = inv.date;
-        row.insertCell().innerText = inv.ncc;
+        row.insertCell().innerText = inv.ncc.ten;
+        row.insertCell().innerText = inv.ncc.sdt;
         row.insertCell().innerText = inv.items.length;
         row.insertCell().innerText = formatMoney(total);
       });
@@ -89,7 +88,7 @@
           <p><b>Đơn vị:</b> ${cty}</p>
           <p><b>Số phiếu:</b> ${soPhieu}</p>
           <p><b>Ngày:</b> ${invoice.date}</p>
-          <p><b>Nhà cung cấp:</b> ${invoice.ncc}</p>
+          <p><b>Nhà cung cấp:</b> ${invoice.ncc.ten} – ${invoice.ncc.sdt}</p>
           <table>
             <thead>
               <tr>
@@ -127,8 +126,8 @@
           </div>
         </div>
       `;
-      voucherDiv.innerHTML = html;
-      voucherContainer.style.display = 'block';
+      document.getElementById('voucher').innerHTML = html;
+      document.getElementById('voucherContainer').style.display = 'block';
       window.scrollTo(0, document.body.scrollHeight);
     });
 
