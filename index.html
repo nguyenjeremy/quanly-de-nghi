@@ -40,7 +40,6 @@
         document.getElementById('invoiceTable').innerHTML = '<p>Chưa có hóa đơn nào.</p>';
         return;
       }
-
       let html = `
         <table>
           <thead>
@@ -56,26 +55,26 @@
           </thead>
           <tbody>
       `;
-
       invoices.forEach((inv, i) => {
         let sum = 0;
         inv.items.forEach(it => sum += it.total);
-        const tenNCC = typeof inv.ncc === "object" ? inv.ncc.ten : inv.ncc;
-        const sdtNCC = typeof inv.ncc === "object" ? inv.ncc.sdt : "";
+
+        // Hỗ trợ cả dữ liệu cũ (string) lẫn mới (object)
+        let nccTen = typeof inv.ncc === 'object' ? inv.ncc.ten : inv.ncc;
+        let nccSDT = typeof inv.ncc === 'object' ? inv.ncc.sdt : '';
 
         html += `
           <tr>
             <td>${inv.id}</td>
             <td>${inv.date}</td>
-            <td>${tenNCC}</td>
-            <td>${sdtNCC}</td>
+            <td>${nccTen}</td>
+            <td>${nccSDT}</td>
             <td>${inv.items.length}</td>
             <td>${formatMoney(sum)}</td>
             <td><button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button></td>
           </tr>
         `;
       });
-
       html += "</tbody></table>";
       document.getElementById('invoiceTable').innerHTML = html;
     }
@@ -127,7 +126,6 @@
     document.getElementById("deleteAll").addEventListener("click", deleteAll);
     document.getElementById("backupJSON").addEventListener("click", backupJSON);
     document.getElementById("loadJSON").addEventListener("click", loadJSON);
-
     renderTable();
   </script>
 </body>
