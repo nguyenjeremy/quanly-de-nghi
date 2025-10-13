@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Hệ thống quản lý hóa đơn bán lẻ</title>
+  <title>Trang chủ - Quản lý hóa đơn</title>
   <link rel="stylesheet" href="style.css" />
   <script src="FileSaver.min.js"></script>
   <script src="xlsx.full.min.js"></script>
@@ -20,89 +20,146 @@
   </header>
 
   <div class="container">
-    <h2>Danh sách hóa đơn bán lẻ</h2>
+    <h2>📅 Danh sách chứng từ trong ngày</h2>
+    <div id="todayInfo"></div>
+    <hr>
+
+    <h3>🧾 Hóa đơn bán lẻ</h3>
     <div id="invoiceTable"></div>
-    <button class="btn danger" id="deleteAll">Xóa toàn bộ</button>
-    <button class="btn secondary" id="backupJSON">Lưu ra JSON</button>
+
+    <h3>📄 Phiếu đề nghị vật tư</h3>
+    <div id="dnvtTable"></div>
+
+    <h3>💰 Phiếu đề nghị thanh toán</h3>
+    <div id="dnttTable"></div>
+
+    <hr>
+    <button class="btn secondary" id="backupJSON">💾 Lưu toàn bộ ra JSON</button>
     <input type="file" id="fileInput" style="display:none" />
-    <button class="btn" id="loadJSON">Tải từ JSON</button>
+    <button class="btn" id="loadJSON">📂 Tải từ JSON</button>
   </div>
 
   <script>
+    // ======== HÀM CHUNG ========
     function formatMoney(num) {
       return Number(num).toLocaleString("vi-VN");
     }
 
-    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    function parseDate(str) {
+      if (!str) return null;
+      const parts = str.split(/[\/\-\.]/).map(Number);
+      if (parts.length === 3) {
+        const [a, b, c] = parts;
+        const [d, m, y] = a > 31 ? [c, b, a] : [a, b, c];
+        return new Date(y, m - 1, d);
+      }
+      return null;
+    }
 
-    function renderTable() {
-      if (invoices.length === 0) {
-        document.getElementById('invoiceTable').innerHTML = '<p>Chưa có hóa đơn nào.</p>';
+    function isToday(dateStr) {
+      const d = parseDate(dateStr);
+      if (!d) return false;
+      const today = new Date();
+      return d.getDate() === today.getDate() &&
+             d.getMonth() === today.getMonth() &&
+             d.getFullYear() === today.getFullYear();
+    }
+
+    // ======== DỮ LIỆU ========
+    const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    const dnvtList = JSON.parse(localStorage.getItem('dnvtList') || '[]');
+    const dnttList = JSON.parse(localStorage.getItem('dnttList') || '[]');
+
+    // ======== HIỂN THỊ NGÀY ========
+    const today = new Date();
+    const ngayText = `Ngày ${today.getDate()} tháng ${today.getMonth()+1} năm ${today.getFullYear()}`;
+    document.getElementById('todayInfo').innerHTML = `<b>${ngayText}</b>`;
+
+    // ======== HÓA ĐƠN TRONG NGÀY ========
+    function renderInvoices() {
+      const list = invoices.filter(inv => isToday(inv.date));
+      if (list.length === 0) {
+        document.getElementById('invoiceTable').innerHTML = '<p>Không có hóa đơn bán lẻ nào hôm nay.</p>';
         return;
       }
+
       let html = `
         <table>
-          <thead>
-            <tr>
-              <th>Mã HĐ</th>
-              <th>Ngày</th>
-              <th>Nhà cung cấp</th>
-              <th>SĐT</th>
-              <th>Số dòng</th>
-              <th>Tổng tiền</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
+          <thead><tr>
+            <th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>SĐT</th>
+            <th>Số dòng</th><th>Tổng tiền</th>
+          </tr></thead><tbody>
       `;
-      invoices.forEach((inv, i) => {
-        let sum = 0;
-        inv.items.forEach(it => sum += it.total);
-
-        // Hỗ trợ cả dữ liệu cũ (string) lẫn mới (object)
-        let nccTen = typeof inv.ncc === 'object' ? inv.ncc.ten : inv.ncc;
-        let nccSDT = typeof inv.ncc === 'object' ? inv.ncc.sdt : '';
-
-        html += `
-          <tr>
-            <td>${inv.id}</td>
-            <td>${inv.date}</td>
-            <td>${nccTen}</td>
-            <td>${nccSDT}</td>
-            <td>${inv.items.length}</td>
-            <td>${formatMoney(sum)}</td>
-            <td><button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button></td>
-          </tr>
-        `;
+      list.forEach(inv => {
+        const sum = inv.items.reduce((s, it) => s + it.total, 0);
+        const ten = typeof inv.ncc === 'object' ? inv.ncc.ten : inv.ncc;
+        const sdt = typeof inv.ncc === 'object' ? inv.ncc.sdt : '';
+        html += `<tr>
+          <td>${inv.id}</td><td>${inv.date}</td><td>${ten}</td><td>${sdt}</td>
+          <td>${inv.items.length}</td><td>${formatMoney(sum)}</td>
+        </tr>`;
       });
-      html += "</tbody></table>";
+      html += '</tbody></table>';
       document.getElementById('invoiceTable').innerHTML = html;
     }
 
-    function deleteInvoice(index) {
-      if (confirm("Xác nhận xóa hóa đơn này?")) {
-        invoices.splice(index, 1);
-        localStorage.setItem('hoadonList', JSON.stringify(invoices));
-        renderTable();
+    // ======== DNVT TRONG NGÀY ========
+    function renderDNVT() {
+      const list = dnvtList.filter(x => isToday(x.ngay));
+      if (list.length === 0) {
+        document.getElementById('dnvtTable').innerHTML = '<p>Không có phiếu đề nghị vật tư hôm nay.</p>';
+        return;
       }
+
+      let html = `
+        <table>
+          <thead><tr>
+            <th>Số phiếu</th><th>Ngày</th><th>Công ty</th><th>Nhà cung cấp</th><th>Tổng tiền</th>
+          </tr></thead><tbody>
+      `;
+      list.forEach(p => {
+        html += `<tr>
+          <td>${p.id}</td><td>${p.ngay}</td><td>${p.cty}</td><td>${p.ncc}</td><td>${formatMoney(p.tongTien)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('dnvtTable').innerHTML = html;
     }
 
-    function deleteAll() {
-      if (confirm("Xác nhận xóa toàn bộ hóa đơn?")) {
-        invoices = [];
-        localStorage.removeItem('hoadonList');
-        renderTable();
+    // ======== DNTT TRONG NGÀY ========
+    function renderDNTT() {
+      const list = dnttList.filter(x => isToday(x.ngay));
+      if (list.length === 0) {
+        document.getElementById('dnttTable').innerHTML = '<p>Không có phiếu đề nghị thanh toán hôm nay.</p>';
+        return;
       }
+
+      let html = `
+        <table>
+          <thead><tr>
+            <th>Số phiếu</th><th>Ngày</th><th>Công ty</th><th>Nhà cung cấp</th><th>Tổng tiền</th><th>Nội dung</th>
+          </tr></thead><tbody>
+      `;
+      list.forEach(p => {
+        html += `<tr>
+          <td>${p.id}</td><td>${p.ngay}</td><td>${p.cty}</td><td>${p.ncc}</td>
+          <td>${formatMoney(p.tongTien)}</td><td>${p.noiDung || ''}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('dnttTable').innerHTML = html;
     }
 
-    function backupJSON() {
-      const blob = new Blob([JSON.stringify(invoices, null, 2)], { type: "application/json" });
-      saveAs(blob, "backup_hoadon.json");
-    }
+    // ======== BACKUP / LOAD JSON ========
+    document.getElementById("backupJSON").addEventListener("click", () => {
+      const allData = { invoices, dnvtList, dnttList };
+      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+      saveAs(blob, "Backup_HeThong.json");
+    });
 
-    function loadJSON() {
+    document.getElementById("loadJSON").addEventListener("click", () => {
       document.getElementById("fileInput").click();
-    }
+    });
 
     document.getElementById("fileInput").addEventListener("change", function(e) {
       const file = e.target.files[0];
@@ -111,22 +168,26 @@
       reader.onload = function(evt) {
         try {
           const data = JSON.parse(evt.target.result);
-          if (Array.isArray(data)) {
-            invoices = data;
-            localStorage.setItem('hoadonList', JSON.stringify(invoices));
-            renderTable();
-          } else alert("File JSON không hợp lệ!");
+          if (data.invoices && data.dnvtList && data.dnttList) {
+            localStorage.setItem('hoadonList', JSON.stringify(data.invoices));
+            localStorage.setItem('dnvtList', JSON.stringify(data.dnvtList));
+            localStorage.setItem('dnttList', JSON.stringify(data.dnttList));
+            alert("✅ Đã nạp dữ liệu thành công!");
+            location.reload();
+          } else {
+            alert("❌ File JSON không hợp lệ!");
+          }
         } catch {
-          alert("Lỗi khi đọc file JSON!");
+          alert("❌ Lỗi khi đọc file JSON!");
         }
       };
       reader.readAsText(file);
     });
 
-    document.getElementById("deleteAll").addEventListener("click", deleteAll);
-    document.getElementById("backupJSON").addEventListener("click", backupJSON);
-    document.getElementById("loadJSON").addEventListener("click", loadJSON);
-    renderTable();
+    // ======== CHẠY ========
+    renderInvoices();
+    renderDNVT();
+    renderDNTT();
   </script>
 </body>
 </html>

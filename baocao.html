@@ -2,12 +2,13 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>Báo cáo chi tiết hóa đơn bán lẻ</title>
+  <title>Báo cáo tổng hợp phiếu & hóa đơn</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>BÁO CÁO CHI TIẾT HÓA ĐƠN BÁN LẺ</h1>
+    <h1>BÁO CÁO TỔNG HỢP</h1>
     <nav>
       <a href="index.html">Trang chủ</a>
       <a href="nhap_hoadon.html">Nhập hóa đơn</a>
@@ -17,57 +18,160 @@
     </nav>
   </header>
 
-  <div class="container" id="report"></div>
+  <div class="container" id="report">
+    <h2>Bộ lọc ngày tháng năm</h2>
+    <label>Từ ngày: <input type="date" id="fromDate"></label>
+    <label>Đến ngày: <input type="date" id="toDate"></label>
+    <button class="btn secondary" id="filterBtn">Lọc</button>
+    <button class="btn" id="exportExcel">Xuất Excel</button>
+    <hr>
+    <div id="result"></div>
+  </div>
 
   <script>
-    const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    const reportDiv = document.getElementById('report');
+    let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
+    let dnvtList = JSON.parse(localStorage.getItem('dnvtList') || '[]');
+    let dnttList = JSON.parse(localStorage.getItem('dnttList') || '[]');
+    const resultDiv = document.getElementById('result');
 
     function formatMoney(num) {
       return Number(num).toLocaleString("vi-VN");
     }
 
-    if (invoices.length === 0) {
-      reportDiv.innerHTML = '<p>Chưa có hóa đơn bán lẻ nào.</p>';
-    } else {
-      let html = `
-        <table>
-          <thead>
-            <tr>
-              <th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th>
-              <th>Tên vật tư</th><th>ĐVT</th><th>SL</th>
-              <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th>
-            </tr>
-          </thead><tbody>
-      `;
-      let grandTotal = 0;
-      invoices.forEach(inv => {
-        inv.items.forEach(it => {
-          grandTotal += it.total;
-          html += `
-            <tr>
-              <td>${inv.id}</td>
-              <td>${inv.date}</td>
-              <td>${inv.ncc}</td>
-              <td>${it.ten}</td>
-              <td>${it.dv}</td>
-              <td>${it.sl}</td>
-              <td>${formatMoney(it.dg)}</td>
-              <td>${formatMoney(it.total)}</td>
-              <td>${it.noiNhan}</td>
-            </tr>
-          `;
-        });
-      });
-      html += `
-          <tr>
-            <td colspan="7" style="text-align:right"><b>Tổng cộng:</b></td>
-            <td colspan="2"><b>${formatMoney(grandTotal)} VNĐ</b></td>
-          </tr>
-        </tbody></table>
-      `;
-      reportDiv.innerHTML = html;
+    // ======= Xử lý ngày =======
+    function parseDate(str) {
+      if (!str) return null;
+      const parts = str.split(/[\/\-\.]/).map(Number);
+      if (parts.length === 3) {
+        const [a, b, c] = parts;
+        const [d, m, y] = a > 31 ? [c, b, a] : [a, b, c];
+        return new Date(y, m - 1, d);
+      }
+      return null;
     }
+
+    function filterByDate(list, from, to, key) {
+      if (!from && !to) return list;
+      const f = from ? new Date(from) : null;
+      const t = to ? new Date(to) : null;
+      return list.filter(item => {
+        const d = parseDate(item[key]);
+        return (!f || d >= f) && (!t || d <= t);
+      });
+    }
+
+    // ======= Render dữ liệu =======
+    function render() {
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      const fDNVT = filterByDate(dnvtList, from, to, 'ngay');
+      const fDNTT = filterByDate(dnttList, from, to, 'ngay');
+      const fInvoices = filterByDate(invoices, from, to, 'date');
+
+      let html = '';
+
+      // === DNVT ===
+      html += `<h2>Phiếu Đề nghị vật tư (${fDNVT.length})</h2>`;
+      if (fDNVT.length === 0) {
+        html += `<p>Không có phiếu đề nghị vật tư trong khoảng này.</p>`;
+      } else {
+        html += `<table><thead><tr>
+          <th>Số phiếu</th><th>Ngày</th><th>Công ty</th><th>Nhà cung cấp</th><th>Tổng tiền</th><th>Xóa</th>
+        </tr></thead><tbody>`;
+        fDNVT.forEach((p, i) => {
+          html += `<tr>
+            <td>${p.id}</td><td>${p.ngay}</td><td>${p.cty}</td><td>${p.ncc}</td>
+            <td>${formatMoney(p.tongTien)}</td>
+            <td><button class="btn danger" onclick="deleteDNVT(${i})">Xóa</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+
+      // === DNTT ===
+      html += `<h2>Phiếu Đề nghị thanh toán (${fDNTT.length})</h2>`;
+      if (fDNTT.length === 0) {
+        html += `<p>Không có phiếu đề nghị thanh toán trong khoảng này.</p>`;
+      } else {
+        html += `<table><thead><tr>
+          <th>Số phiếu</th><th>Ngày</th><th>Công ty</th><th>Nhà cung cấp</th><th>Tổng tiền</th><th>Nội dung</th><th>Xóa</th>
+        </tr></thead><tbody>`;
+        fDNTT.forEach((p, i) => {
+          html += `<tr>
+            <td>${p.id}</td><td>${p.ngay}</td><td>${p.cty}</td><td>${p.ncc}</td>
+            <td>${formatMoney(p.tongTien)}</td><td>${p.noiDung}</td>
+            <td><button class="btn danger" onclick="deleteDNTT(${i})">Xóa</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+
+      // === Hóa đơn ===
+      html += `<h2>Hóa đơn bán lẻ (${fInvoices.length})</h2>`;
+      if (fInvoices.length === 0) {
+        html += `<p>Không có hóa đơn bán lẻ trong khoảng này.</p>`;
+      } else {
+        html += `<table><thead><tr>
+          <th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>SĐT</th><th>Số dòng</th><th>Tổng tiền</th><th>Xóa</th>
+        </tr></thead><tbody>`;
+        fInvoices.forEach((inv, i) => {
+          const sum = inv.items.reduce((s, it) => s + it.total, 0);
+          const ten = typeof inv.ncc === 'object' ? inv.ncc.ten : inv.ncc;
+          const sdt = typeof inv.ncc === 'object' ? inv.ncc.sdt : '';
+          html += `<tr>
+            <td>${inv.id}</td><td>${inv.date}</td><td>${ten}</td><td>${sdt}</td>
+            <td>${inv.items.length}</td><td>${formatMoney(sum)}</td>
+            <td><button class="btn danger" onclick="deleteInvoice(${i})">Xóa</button></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+      }
+
+      resultDiv.innerHTML = html;
+
+      // Lưu danh sách đang hiển thị để xuất Excel
+      window.filteredData = { fDNVT, fDNTT, fInvoices };
+    }
+
+    // ======= Xuất Excel (theo bộ lọc) =======
+    document.getElementById('exportExcel').addEventListener('click', () => {
+      const wb = XLSX.utils.book_new();
+      const { fDNVT = [], fDNTT = [], fInvoices = [] } = window.filteredData || {};
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fDNVT), "DNVT");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fDNTT), "DNTT");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fInvoices), "HoaDon");
+      XLSX.writeFile(wb, "BaoCao_LocTheoNgay.xlsx");
+    });
+
+    // ======= Xóa =======
+    function deleteDNVT(i){
+      if(confirm("Xóa phiếu đề nghị vật tư này?")){
+        dnvtList.splice(i,1);
+        localStorage.setItem('dnvtList', JSON.stringify(dnvtList));
+        render();
+      }
+    }
+
+    function deleteDNTT(i){
+      if(confirm("Xóa phiếu đề nghị thanh toán này?")){
+        dnttList.splice(i,1);
+        localStorage.setItem('dnttList', JSON.stringify(dnttList));
+        localStorage.setItem('refreshDNTT', '1'); // 🔥 thêm dòng này để trang đề nghị thanh toán tự reload
+        render();
+      }
+    }
+
+    function deleteInvoice(i){
+      if(confirm("Xóa hóa đơn bán lẻ này?")){
+        invoices.splice(i,1);
+        localStorage.setItem('hoadonList', JSON.stringify(invoices));
+        render();
+      }
+    }
+
+    // ======= Sự kiện =======
+    document.getElementById('filterBtn').addEventListener('click', render);
+    render();
   </script>
 </body>
 </html>

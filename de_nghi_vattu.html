@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <title>Phiếu đề nghị mua vật tư</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <header>
@@ -29,7 +31,7 @@
     <h3>Danh sách hóa đơn bán lẻ</h3>
     <table id="invoiceTable">
       <thead>
-        <tr><th>Chọn</th><th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>SĐT</th><th>Số dòng</th><th>Tổng tiền</th></tr>
+        <tr><th>Chọn</th><th>Mã HĐ</th><th>Ngày</th><th>Nhà cung cấp</th><th>Số dòng</th><th>Tổng tiền</th></tr>
       </thead>
       <tbody id="invoiceBody"></tbody>
     </table>
@@ -38,6 +40,7 @@
 
     <div id="voucherContainer" style="display:none;margin-top:30px;">
       <button class="btn" id="printBtn">In A4</button>
+      <button class="btn secondary" id="pdfBtn">Xuất PDF</button>
       <div id="voucher"></div>
     </div>
   </div>
@@ -45,14 +48,21 @@
   <script>
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
     const body = document.getElementById('invoiceBody');
+    const voucherDiv = document.getElementById('voucher');
 
     function formatMoney(num) {
       return Number(num).toLocaleString('vi-VN');
     }
 
+    function getNCC(inv) {
+      if (!inv.ncc) return '(Chưa nhập NCC)';
+      if (typeof inv.ncc === 'object') return `${inv.ncc.ten} – ${inv.ncc.sdt}`;
+      return inv.ncc;
+    }
+
     function loadTable() {
       if (invoices.length === 0) {
-        body.innerHTML = '<tr><td colspan="7" style="text-align:center">Chưa có hóa đơn bán lẻ nào</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center">Chưa có hóa đơn bán lẻ nào</td></tr>';
         return;
       }
       invoices.forEach(inv => {
@@ -61,8 +71,7 @@
         row.insertCell().innerHTML = '<input type="radio" name="chonHD">';
         row.insertCell().innerText = inv.id;
         row.insertCell().innerText = inv.date;
-        row.insertCell().innerText = inv.ncc.ten;
-        row.insertCell().innerText = inv.ncc.sdt;
+        row.insertCell().innerText = getNCC(inv);
         row.insertCell().innerText = inv.items.length;
         row.insertCell().innerText = formatMoney(total);
       });
@@ -70,25 +79,24 @@
 
     document.getElementById('createVoucher').addEventListener('click', () => {
       const selected = document.querySelector('#invoiceBody input[type=radio]:checked');
-      if (!selected) {
-        alert('Vui lòng chọn một hóa đơn!');
-        return;
-      }
-
+      if (!selected) return alert('Vui lòng chọn một hóa đơn!');
       const row = selected.closest('tr');
       const id = row.cells[1].innerText;
       const invoice = invoices.find(x => x.id === id);
       const total = invoice.items.reduce((s, it) => s + it.total, 0);
       const cty = document.getElementById('companySelect').selectedOptions[0].text;
       const soPhieu = `${id.replace('BL','')}.${invoice.date.split('-').reverse().join('.')}/DNVT`;
+      const nccText = getNCC(invoice);
 
       let html = `
         <div class="voucher">
-          <h2>PHIẾU ĐỀ NGHỊ MUA VẬT TƯ</h2>
-          <p><b>Đơn vị:</b> ${cty}</p>
-          <p><b>Số phiếu:</b> ${soPhieu}</p>
+          <div style="text-align:left;line-height:1.6">
+            <b>${cty}</b><br/>
+            <b>Số phiếu:</b> ${soPhieu}
+          </div>
+          <h2 style="text-align:center;margin:10px 0;">PHIẾU ĐỀ NGHỊ MUA VẬT TƯ</h2>
           <p><b>Ngày:</b> ${invoice.date}</p>
-          <p><b>Nhà cung cấp:</b> ${invoice.ncc.ten} – ${invoice.ncc.sdt}</p>
+          <p><b>Nhà cung cấp:</b> ${nccText}</p>
           <table>
             <thead>
               <tr>
@@ -115,8 +123,7 @@
             <td colspan="5" style="text-align:right"><b>Tổng cộng:</b></td>
             <td colspan="2"><b>${formatMoney(total)} VNĐ</b></td>
           </tr>
-          </tbody>
-          </table>
+          </tbody></table>
 
           <div class="signature">
             <div>Người lập phiếu<br><br>(ký, ghi rõ họ tên)</div>
@@ -126,12 +133,33 @@
           </div>
         </div>
       `;
-      document.getElementById('voucher').innerHTML = html;
+      voucherDiv.innerHTML = html;
       document.getElementById('voucherContainer').style.display = 'block';
-      window.scrollTo(0, document.body.scrollHeight);
+
+      // ====== Lưu phiếu vào LocalStorage ======
+      let dnvtList = JSON.parse(localStorage.getItem('dnvtList') || '[]');
+      const dnvt = { id: soPhieu, ngay: invoice.date, cty, ncc: nccText, tongTien: total };
+      dnvtList.push(dnvt);
+      localStorage.setItem('dnvtList', JSON.stringify(dnvtList));
+      alert("✅ Đã lưu phiếu đề nghị vật tư!");
     });
 
     document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+    document.getElementById('pdfBtn').addEventListener('click', () => {
+      const voucher = document.getElementById('voucher');
+      const d = new Date();
+      const fileName = `DNVT_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.pdf`;
+      html2canvas(voucher, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const imgHeight = canvas.height * pageWidth / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+        pdf.save(fileName);
+      });
+    });
+
     loadTable();
   </script>
 </body>

@@ -4,20 +4,24 @@ body {
   margin: 0;
   padding: 0;
 }
+
 header {
   background-color: #333;
   color: white;
   padding: 10px 20px;
 }
+
 nav a {
   color: white;
   margin-right: 15px;
   text-decoration: none;
   font-weight: bold;
 }
+
 nav a:hover {
   text-decoration: underline;
 }
+
 .container {
   width: 95%;
   max-width: 1000px;
@@ -26,24 +30,35 @@ nav a:hover {
   padding: 20px;
   box-shadow: 0 0 5px #ccc;
 }
+
 h1, h2 {
   text-align: center;
 }
+
 table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
   font-size: 14px;
 }
+
 th, td {
   border: 1px solid #ddd;
   padding: 8px;
 }
+
 th {
   background-color: #f2f2f2;
 }
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover { background-color: #f1f1f1; }
+
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+tr:hover {
+  background-color: #f1f1f1;
+}
+
 .btn {
   display: inline-block;
   padding: 8px 12px;
@@ -54,41 +69,87 @@ tr:hover { background-color: #f1f1f1; }
   border-radius: 4px;
   cursor: pointer;
 }
-.btn:hover { background-color: #45a049; }
-.btn.danger { background-color: #f44336; }
-.btn.danger:hover { background-color: #da190b; }
-.btn.secondary { background-color: #008CBA; }
-.btn.secondary:hover { background-color: #007bb5; }
+
+.btn:hover {
+  background-color: #45a049;
+}
+
+.btn.danger {
+  background-color: #f44336;
+}
+
+.btn.danger:hover {
+  background-color: #da190b;
+}
+
+.btn.secondary {
+  background-color: #008CBA;
+}
+
+.btn.secondary:hover {
+  background-color: #007bb5;
+}
 
 .voucher {
   margin-bottom: 50px;
   padding: 15px;
   border: 1px solid #ccc;
 }
+
 .voucher h2 {
   text-align: center;
   margin-top: 0;
 }
+
 .signature {
   margin-top: 40px;
   display: flex;
   justify-content: space-between;
   text-align: center;
 }
+
 .signature div {
   width: 25%;
 }
 
+/* ==================== CHẾ ĐỘ IN ==================== */
 @media print {
-  body { background: white; }
-  .btn, nav, header { display: none !important; }
+  body {
+    background: white;
+  }
+
+  /* Ẩn tất cả phần điều khiển, chỉ in phần phiếu */
+  header,
+  nav,
+  .btn,
+  label,
+  select,
+  h3,
+  #invoiceTable,
+  #itemsTable {
+    display: none !important;
+  }
+
+  /* Chỉ giữ lại phần phiếu */
+  #voucherContainer {
+    display: block !important;
+  }
+
   .container {
     box-shadow: none;
     margin: 0;
     width: 100%;
   }
+
+  /* Đặt khổ giấy A4 dọc và lề chuẩn */
   @page {
     size: A4 portrait;
     margin: 15mm;
+  }
+
+  /* In trắng đen chuẩn hành chính */
+  * {
+    color: #000 !important;
+    background: transparent !important;
   }
 }
