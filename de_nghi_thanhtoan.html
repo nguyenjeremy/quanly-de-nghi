@@ -106,7 +106,6 @@
       return inv.ncc;
     }
 
-    // ======= XỬ LÝ NGÀY =======
     function parseDate(str) {
       if (!str) return null;
       const parts = str.split(/[\/\-\.]/).map(Number);
@@ -118,7 +117,6 @@
       return null;
     }
 
-    // ======= HIỂN THỊ DANH SÁCH HÓA ĐƠN =======
     function renderTable(list) {
       body.innerHTML = '';
       list.forEach(inv => {
@@ -137,7 +135,6 @@
       });
     }
 
-    // ======= MẶC ĐỊNH HIỂN THỊ HÓA ĐƠN TRONG NGÀY =======
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     document.getElementById('fromDate').value = todayStr;
@@ -154,9 +151,8 @@
       renderTable(filtered);
     }
 
-    filterToday(); // hiển thị mặc định trong ngày
+    filterToday();
 
-    // ======= LỌC THEO NGÀY =======
     document.getElementById('filterBtn').addEventListener('click', () => {
       const from = document.getElementById('fromDate').value;
       const to = document.getElementById('toDate').value;
@@ -174,7 +170,6 @@
       return (list.length + 1).toString().padStart(2, '0');
     }
 
-    // ======= TẠO PHIẾU THANH TOÁN =======
     document.getElementById('createVoucher').addEventListener('click', () => {
       const selected = Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
       if (selected.length === 0) return alert('Chưa chọn dòng nào!');
@@ -262,7 +257,6 @@
         items: itemsThanhToan
       });
       localStorage.setItem('dnttList', JSON.stringify(list));
-      alert("✅ Đã lưu phiếu thanh toán thành công!");
     });
 
     document.getElementById('printBtn').addEventListener('click', () => window.print());
