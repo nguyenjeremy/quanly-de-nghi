@@ -7,7 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* ======== Bảng và layout hành chính ======== */
+    /* ======== Bảng hành chính ======== */
     #voucher table, #voucher th, #voucher td {
       border: 1px solid #000 !important;
       border-collapse: collapse;
@@ -30,13 +30,28 @@
     .qr-section div { line-height: 1.6; }
     .qr-section img { width: 120px; height: 120px; }
 
-    /* ======== Ẩn header, filter, NÚT khi in ======== */
+    .signature {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      margin-top: 50px;
+    }
+    .signature div {
+      width: 23%;
+    }
+    .approve-note {
+      text-align: center;
+      margin-top: -10px;
+      font-style: italic;
+    }
+
+    /* ======== In A4, bỏ khung ngoài ======== */
     @media print {
       body {
         background: white;
         -webkit-print-color-adjust: exact !important;
       }
-      header, nav, .btn, .container h3, label, select, #filterBtn, hr {
+      header, nav, .btn, .container h3, label, select, #filterBtn, hr, #itemsTable {
         display: none !important;
       }
       .container {
@@ -102,14 +117,11 @@
   </div>
 
   <script>
-    // ======= Đọc danh sách hóa đơn =======
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
     const body = document.getElementById('itemsBody');
 
-    // ======= Định dạng tiền =======
     function formatMoney(num){ return Number(num).toLocaleString('vi-VN'); }
 
-    // ======= Chuyển số sang chữ =======
     function numberToWordsVN(num){
       if(!num||num===0)return'Không đồng';
       const donvi=['','nghìn','triệu','tỷ'];
@@ -127,8 +139,6 @@
     }
 
     function getNCCName(inv){if(!inv.ncc)return'(Chưa nhập NCC)';if(typeof inv.ncc==='object')return inv.ncc.ten;return inv.ncc;}
-
-    // ======= Chuyển chuỗi ngày sang Date =======
     function parseDate(str){
       if(!str) return null;
       let [d,m,y] = str.includes('/') ? str.split('/') : str.includes('-') ? str.split('-').reverse() : [];
@@ -136,7 +146,6 @@
       return new Date(y, m-1, d);
     }
 
-    // ======= Hiển thị hóa đơn ra bảng =======
     function renderTable(list){
       body.innerHTML='';
       if(list.length===0){ body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn trong ngày</td></tr>'; return; }
@@ -156,7 +165,6 @@
       });
     }
 
-    // ======= Lọc mặc định trong ngày =======
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     document.getElementById('fromDate').value = todayStr;
@@ -167,12 +175,11 @@
         const d=parseDate(inv.date);
         return d && d.getDate()===today.getDate() && d.getMonth()===today.getMonth() && d.getFullYear()===today.getFullYear();
       });
-      if(found.length===0) found = invoices; // Nếu không có thì hiện tất cả
+      if(found.length===0) found = invoices;
       renderTable(found);
     }
     filterToday();
 
-    // ======= Lọc theo khoảng ngày =======
     document.getElementById('filterBtn').addEventListener('click',()=>{
       const from=document.getElementById('fromDate').value,to=document.getElementById('toDate').value;
       const f=from?new Date(from):null,t=to?new Date(to):null;
@@ -188,7 +195,6 @@
       return(list.length+1).toString().padStart(2,'0');
     }
 
-    // ======= Tạo phiếu thanh toán =======
     document.getElementById('createVoucher').addEventListener('click',()=>{
       const selected=Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
       if(selected.length===0) return alert('Chưa chọn dòng nào!');
@@ -220,7 +226,7 @@
         </div>
         <h2 style="text-align:center;margin:10px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
         <p style="text-align:center; font-weight:bold;">${ngayText}</p>
-        <p><b>Kính gửi:</b> BLĐ ${ctyText}</p>
+        <p><b>Kính gửi:</b> Ban lãnh đạo ${ctyText}</p>
         <p><b>Phòng:</b> Kế toán kho</p>
         <p><b>Nội dung:</b> Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì</p>
         <table>
@@ -249,13 +255,15 @@
           <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
           <div>Người kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
           <div>Kế toán trưởng<br><br>(ký, ghi rõ họ tên)</div>
-          <div>Giám đốc<br><br>(ký, ghi rõ họ tên)</div>
+          <div>
+            <div class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ...........</div><br>
+            Giám đốc<br><br>(ký, ghi rõ họ tên)
+          </div>
         </div>
       </div>`;
 
       document.getElementById('voucher').innerHTML=html;
       document.getElementById('voucherContainer').style.display='block';
-
       let list=JSON.parse(localStorage.getItem('dnttList')||'[]');
       list.push({id:soPhieu,ngay:`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,cty:ctyText,ncc,tongTien:total,noiDung:'Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì',items:itemsThanhToan});
       localStorage.setItem('dnttList',JSON.stringify(list));
