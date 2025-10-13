@@ -93,7 +93,7 @@ tr:hover {
 .voucher {
   margin-bottom: 50px;
   padding: 15px;
-  border: 1px solid #ccc;
+  border: 1px solid #000; /* Viền đen rõ */
 }
 
 .voucher h2 {
@@ -112,13 +112,32 @@ tr:hover {
   width: 25%;
 }
 
+/* ==================== BẢNG IN HÀNH CHÍNH TOÀN HỆ THỐNG ==================== */
+.voucher table,
+.voucher th,
+.voucher td {
+  border: 1px solid #000 !important;
+  border-collapse: collapse;
+  color: #000 !important;
+}
+
+.voucher th {
+  background-color: #fff !important;
+  font-weight: bold;
+  text-align: center;
+}
+
+.voucher td {
+  padding: 5px;
+  background-color: #fff !important;
+}
+
 /* ==================== CHẾ ĐỘ IN ==================== */
 @media print {
   body {
     background: white;
   }
 
-  /* Ẩn tất cả phần điều khiển, chỉ in phần phiếu */
   header,
   nav,
   .btn,
@@ -126,11 +145,11 @@ tr:hover {
   select,
   h3,
   #invoiceTable,
-  #itemsTable {
+  #itemsTable,
+  #filterBtn {
     display: none !important;
   }
 
-  /* Chỉ giữ lại phần phiếu */
   #voucherContainer {
     display: block !important;
   }
@@ -141,15 +160,19 @@ tr:hover {
     width: 100%;
   }
 
-  /* Đặt khổ giấy A4 dọc và lề chuẩn */
   @page {
     size: A4 portrait;
     margin: 15mm;
   }
 
-  /* In trắng đen chuẩn hành chính */
   * {
     color: #000 !important;
     background: transparent !important;
+  }
+
+  .voucher table,
+  .voucher th,
+  .voucher td {
+    border: 1px solid #000 !important;
   }
 }
