@@ -7,7 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* === Khung in và bảng hành chính === */
+    /* ======== Bảng và layout hành chính ======== */
     #voucher table, #voucher th, #voucher td {
       border: 1px solid #000 !important;
       border-collapse: collapse;
@@ -30,13 +30,13 @@
     .qr-section div { line-height: 1.6; }
     .qr-section img { width: 120px; height: 120px; }
 
-    /* === Ẩn header, khung trắng khi in === */
+    /* ======== Ẩn header, filter, NÚT khi in ======== */
     @media print {
       body {
         background: white;
         -webkit-print-color-adjust: exact !important;
       }
-      header, nav, hr, .btn, .container h3, label, select {
+      header, nav, .btn, .container h3, label, select, #itemsTable, #filterBtn, hr {
         display: none !important;
       }
       .container {
@@ -94,7 +94,7 @@
 
     <button class="btn" id="createVoucher">Tạo phiếu thanh toán</button>
 
-    <div id="voucherContainer" style="display:none;margin-top:20px;">
+    <div id="voucherContainer" style="display:none;margin-top:30px;">
       <button class="btn" id="printBtn">In A4</button>
       <button class="btn secondary" id="pdfBtn">Xuất PDF</button>
       <div id="voucher"></div>
@@ -125,7 +125,24 @@
 
     function getNCCName(inv){if(!inv.ncc)return'(Chưa nhập NCC)';if(typeof inv.ncc==='object')return inv.ncc.ten;return inv.ncc;}
     function parseDate(str){if(!str)return null;const p=str.split(/[\\/\\-.]/).map(Number);if(p.length===3){const[a,b,c]=p;const[d,m,y]=a>31?[c,b,a]:[a,b,c];return new Date(y,m-1,d);}return null;}
-    function renderTable(list){body.innerHTML='';list.forEach(inv=>{inv.items.forEach(it=>{const row=body.insertRow();row.insertCell().innerHTML='<input type="checkbox">';row.insertCell().innerText=inv.date;row.insertCell().innerText=it.ten;row.insertCell().innerText=it.dv;row.insertCell().innerText=it.sl;row.insertCell().innerText=formatMoney(it.dg);row.insertCell().innerText=formatMoney(it.total);row.insertCell().innerText=it.noiNhan;row.insertCell().innerText=getNCCName(inv);});});}
+    function renderTable(list){
+      body.innerHTML='';
+      if(list.length===0){body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn trong ngày</td></tr>';return;}
+      list.forEach(inv=>{
+        inv.items.forEach(it=>{
+          const row=body.insertRow();
+          row.insertCell().innerHTML='<input type="checkbox">';
+          row.insertCell().innerText=inv.date;
+          row.insertCell().innerText=it.ten;
+          row.insertCell().innerText=it.dv;
+          row.insertCell().innerText=it.sl;
+          row.insertCell().innerText=formatMoney(it.dg);
+          row.insertCell().innerText=formatMoney(it.total);
+          row.insertCell().innerText=it.noiNhan;
+          row.insertCell().innerText=getNCCName(inv);
+        });
+      });
+    }
 
     const today=new Date();
     const todayStr=today.toISOString().split('T')[0];
@@ -133,12 +150,13 @@
     document.getElementById('toDate').value=todayStr;
 
     function filterToday(){
-      const f=invoices.filter(inv=>{
+      const filtered=invoices.filter(inv=>{
         const d=parseDate(inv.date);
-        return d&&d.getDate()===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();
+        return d && d.toISOString().split('T')[0] === todayStr;
       });
-      renderTable(f);
+      renderTable(filtered);
     }
+
     filterToday();
 
     document.getElementById('filterBtn').addEventListener('click',()=>{
