@@ -4,6 +4,29 @@
   <meta charset="UTF-8" />
   <title>Giấy đề nghị thanh toán</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .voucher-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .voucher-header .unit {
+      font-weight: bold;
+      text-align: left;
+    }
+    .voucher-header h2 {
+      flex: 1;
+      text-align: center;
+      margin: 0;
+      padding-right: 120px; /* để giữ căn giữa khi có Đơn vị bên trái */
+    }
+    @media print {
+      .voucher-header h2 {
+        padding-right: 0;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -28,7 +51,8 @@
     <table id="itemsTable">
       <thead>
         <tr>
-          <th>Chọn</th><th>Ngày</th><th>Tên hàng</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th><th>SĐT</th>
+          <th>Chọn</th><th>Ngày</th><th>Tên hàng</th><th>ĐVT</th>
+          <th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th>
         </tr>
       </thead>
       <tbody id="itemsBody"></tbody>
@@ -50,10 +74,9 @@
       return Number(num).toLocaleString('vi-VN');
     }
 
-    // ======= Hiển thị danh sách chi tiết hàng hóa từ tất cả hóa đơn =======
+    // ======= Hiển thị danh sách chi tiết hàng hóa =======
     invoices.forEach(inv => {
       const nccTen = typeof inv.ncc === 'object' ? inv.ncc.ten : inv.ncc;
-      const nccSDT = typeof inv.ncc === 'object' ? inv.ncc.sdt : '';
       inv.items.forEach(it => {
         const row = body.insertRow();
         row.insertCell().innerHTML = '<input type="checkbox">';
@@ -65,7 +88,6 @@
         row.insertCell().innerText = formatMoney(it.total);
         row.insertCell().innerText = it.noiNhan;
         row.insertCell().innerText = nccTen;
-        row.insertCell().innerText = nccSDT;
       });
     });
 
@@ -73,20 +95,16 @@
     document.getElementById('createVoucher').addEventListener('click', () => {
       const selected = Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
       if (selected.length === 0) return alert('Chưa chọn dòng nào!');
-      const cty = document.getElementById('companySelect');
-      const name = cty.options[cty.selectedIndex].text;
 
       let rows = '';
       let total = 0;
       let nccSet = new Set();
-      let sdtSet = new Set();
 
       selected.forEach(chk => {
         const r = chk.closest('tr');
         const t = parseFloat(r.cells[6].innerText.replace(/\./g,'')) || 0;
         total += t;
         nccSet.add(r.cells[8].innerText);
-        sdtSet.add(r.cells[9].innerText);
         rows += `<tr>
           <td>${r.cells[1].innerText}</td>
           <td>${r.cells[2].innerText}</td>
@@ -96,7 +114,6 @@
           <td>${r.cells[6].innerText}</td>
           <td>${r.cells[7].innerText}</td>
           <td>${r.cells[8].innerText}</td>
-          <td>${r.cells[9].innerText}</td>
         </tr>`;
       });
 
@@ -105,18 +122,21 @@
 
       const html = `
         <div class="voucher">
-          <h2>GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
-          <p><b>Đơn vị:</b> ${name}</p>
+          <div class="voucher-header">
+            <div class="unit">Đơn vị: Công ty TNHH Đầu Tư và Phát Triển Thư Thái</div>
+            <h2>GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
+          </div>
           <p><b>Số phiếu:</b> ${soPhieu}</p>
           <p><b>Ngày:</b> ${d.toLocaleDateString('vi-VN')}</p>
-          <p><b>Nhà cung cấp:</b> ${Array.from(nccSet).join(', ')} – ${Array.from(sdtSet).join(', ')}</p>
+          <p><b>Nhà cung cấp:</b> ${Array.from(nccSet).join(', ')}</p>
           <table>
             <thead><tr>
-              <th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th><th>SĐT</th>
+              <th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th><th>SL</th>
+              <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th>
             </tr></thead>
             <tbody>${rows}
               <tr>
-                <td colspan="6" style="text-align:right"><b>Tổng chi phí:</b></td>
+                <td colspan="5" style="text-align:right"><b>Tổng chi phí:</b></td>
                 <td colspan="3"><b>${formatMoney(total)} VNĐ</b></td>
               </tr>
             </tbody>
