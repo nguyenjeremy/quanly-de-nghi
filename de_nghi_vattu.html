@@ -136,12 +136,11 @@
       voucherDiv.innerHTML = html;
       document.getElementById('voucherContainer').style.display = 'block';
 
-      // ====== Lưu phiếu vào LocalStorage ======
       let dnvtList = JSON.parse(localStorage.getItem('dnvtList') || '[]');
       const dnvt = { id: soPhieu, ngay: invoice.date, cty, ncc: nccText, tongTien: total };
       dnvtList.push(dnvt);
       localStorage.setItem('dnvtList', JSON.stringify(dnvtList));
-      alert("✅ Đã lưu phiếu đề nghị vật tư!");
+      // ❌ Không hiện alert nữa
     });
 
     document.getElementById('printBtn').addEventListener('click', () => window.print());
