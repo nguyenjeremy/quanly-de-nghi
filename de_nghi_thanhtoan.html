@@ -27,6 +27,13 @@
       <option value="TP">Công ty TNHH Gạch Tuynel Thanh Phong</option>
     </select>
 
+    <hr>
+    <h3>Lọc hóa đơn theo ngày</h3>
+    <label>Từ ngày: <input type="date" id="fromDate"></label>
+    <label>Đến ngày: <input type="date" id="toDate"></label>
+    <button class="btn secondary" id="filterBtn">Lọc</button>
+
+    <hr>
     <table id="itemsTable">
       <thead>
         <tr>
@@ -47,14 +54,7 @@
   </div>
 
   <script>
-    // ==== TỰ LÀM MỚI NẾU VỪA XÓA DNTT Ở BÁO CÁO ====
-    if (localStorage.getItem('refreshDNTT')) {
-      localStorage.removeItem('refreshDNTT');
-      window.location.reload();
-    }
-
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
-    const dnttList = JSON.parse(localStorage.getItem('dnttList') || '[]');
     const body = document.getElementById('itemsBody');
 
     function formatMoney(num) {
@@ -106,29 +106,67 @@
       return inv.ncc;
     }
 
-    // ==== KIỂM TRA DÒNG ĐÃ THANH TOÁN ====
-    function isItemPaid(inv, item) {
-      return dnttList.some(d =>
-        d.ncc === getNCCName(inv) &&
-        d.items?.some(it => it.ten === item.ten && it.total === item.total)
-      );
+    // ======= XỬ LÝ NGÀY =======
+    function parseDate(str) {
+      if (!str) return null;
+      const parts = str.split(/[\/\-\.]/).map(Number);
+      if (parts.length === 3) {
+        const [a, b, c] = parts;
+        const [d, m, y] = a > 31 ? [c, b, a] : [a, b, c];
+        return new Date(y, m - 1, d);
+      }
+      return null;
     }
 
-    // ==== HIỂN THỊ CÁC DÒNG CHƯA THANH TOÁN ====
-    invoices.forEach(inv => {
-      inv.items.forEach(it => {
-        if (isItemPaid(inv, it)) return; // bỏ dòng đã thanh toán
-        const row = body.insertRow();
-        row.insertCell().innerHTML = '<input type="checkbox">';
-        row.insertCell().innerText = inv.date;
-        row.insertCell().innerText = it.ten;
-        row.insertCell().innerText = it.dv;
-        row.insertCell().innerText = it.sl;
-        row.insertCell().innerText = formatMoney(it.dg);
-        row.insertCell().innerText = formatMoney(it.total);
-        row.insertCell().innerText = it.noiNhan;
-        row.insertCell().innerText = getNCCName(inv);
+    // ======= HIỂN THỊ DANH SÁCH HÓA ĐƠN =======
+    function renderTable(list) {
+      body.innerHTML = '';
+      list.forEach(inv => {
+        inv.items.forEach(it => {
+          const row = body.insertRow();
+          row.insertCell().innerHTML = '<input type="checkbox">';
+          row.insertCell().innerText = inv.date;
+          row.insertCell().innerText = it.ten;
+          row.insertCell().innerText = it.dv;
+          row.insertCell().innerText = it.sl;
+          row.insertCell().innerText = formatMoney(it.dg);
+          row.insertCell().innerText = formatMoney(it.total);
+          row.insertCell().innerText = it.noiNhan;
+          row.insertCell().innerText = getNCCName(inv);
+        });
       });
+    }
+
+    // ======= MẶC ĐỊNH HIỂN THỊ HÓA ĐƠN TRONG NGÀY =======
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    document.getElementById('fromDate').value = todayStr;
+    document.getElementById('toDate').value = todayStr;
+
+    function filterToday() {
+      const filtered = invoices.filter(inv => {
+        const invDate = parseDate(inv.date);
+        return invDate &&
+          invDate.getDate() === today.getDate() &&
+          invDate.getMonth() === today.getMonth() &&
+          invDate.getFullYear() === today.getFullYear();
+      });
+      renderTable(filtered);
+    }
+
+    filterToday(); // hiển thị mặc định trong ngày
+
+    // ======= LỌC THEO NGÀY =======
+    document.getElementById('filterBtn').addEventListener('click', () => {
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      const f = from ? new Date(from) : null;
+      const t = to ? new Date(to) : null;
+      const filtered = invoices.filter(inv => {
+        const d = parseDate(inv.date);
+        return (!f || d >= f) && (!t || d <= t);
+      });
+      renderTable(filtered);
     });
 
     function getNextDNTTNumber() {
@@ -136,7 +174,7 @@
       return (list.length + 1).toString().padStart(2, '0');
     }
 
-    // ==== TẠO PHIẾU THANH TOÁN ====
+    // ======= TẠO PHIẾU THANH TOÁN =======
     document.getElementById('createVoucher').addEventListener('click', () => {
       const selected = Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
       if (selected.length === 0) return alert('Chưa chọn dòng nào!');
@@ -225,13 +263,6 @@
       });
       localStorage.setItem('dnttList', JSON.stringify(list));
       alert("✅ Đã lưu phiếu thanh toán thành công!");
-
-      // 🔥 CHỈ RELOAD SAU KHI NGƯỜI DÙNG XÁC NHẬN ĐÃ IN XONG
-      setTimeout(() => {
-        if (confirm("Ba đã in xong phiếu chưa? Bấm OK để cập nhật lại danh sách.")) {
-          window.location.reload();
-        }
-      }, 500);
     });
 
     document.getElementById('printBtn').addEventListener('click', () => window.print());
