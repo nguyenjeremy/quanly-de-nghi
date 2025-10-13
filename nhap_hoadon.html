@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>Nhập hóa đơn bán lẻ</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="xlsx.full.min.js"></script>
 </head>
 <body>
   <header>
@@ -20,26 +21,26 @@
   <div class="container">
     <form id="invoiceForm">
       <label><b>Mã hóa đơn:</b> <span id="invoiceID" style="font-weight:bold;color:blue;"></span></label><br/><br/>
-      <label>Nhà cung cấp: <input type="text" id="ncc" required /></label><br/><br/>
+
+      <label>Nhà cung cấp: 
+        <select id="nccSelect" required></select>
+        <button type="button" class="btn secondary" id="updateNCC">Cập nhật NCC từ Excel</button>
+      </label>
+      <br/><br/>
+
       <label>Ngày hóa đơn: <input type="date" id="date" required /></label><br/><br/>
 
       <table>
         <thead>
           <tr>
-            <th>STT</th>
-            <th>Tên vật tư</th>
-            <th>ĐVT</th>
-            <th>Số lượng</th>
-            <th>Đơn giá</th>
-            <th>Thành tiền</th>
-            <th>Nơi nhận</th>
-            <th>Hành động</th>
+            <th>STT</th><th>Tên vật tư</th><th>ĐVT</th><th>Số lượng</th>
+            <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Hành động</th>
           </tr>
         </thead>
         <tbody id="itemsBody"></tbody>
       </table>
-      <button type="button" class="btn" id="addItem">Thêm dòng</button>
-      <br/><br/>
+
+      <button type="button" class="btn" id="addItem">Thêm dòng</button><br/><br/>
       <button type="submit" class="btn">Lưu hóa đơn</button>
     </form>
   </div>
@@ -100,18 +101,70 @@
       row.cells[5].innerText = formatMoney(sl * dg);
     }
 
+    // ====== NCC ======
+    async function loadNCCFromExcel(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet);
+          const list = json.map(r => ({ ten: r.NCC || '', sdt: r.SDT || '' }));
+          localStorage.setItem('nccList', JSON.stringify(list));
+          resolve(list);
+        };
+        reader.onerror = reject;
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    function renderNCC(list) {
+      const sel = document.getElementById('nccSelect');
+      sel.innerHTML = '<option value="">-- Chọn nhà cung cấp --</option>';
+      list.forEach(ncc => {
+        const opt = document.createElement('option');
+        opt.value = ncc.ten;
+        opt.textContent = `${ncc.ten} – ${ncc.sdt}`;
+        opt.dataset.sdt = ncc.sdt;
+        sel.appendChild(opt);
+      });
+    }
+
+    function initNCC() {
+      const saved = localStorage.getItem('nccList');
+      if (saved) renderNCC(JSON.parse(saved));
+    }
+
+    document.getElementById('updateNCC').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.xlsx';
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const list = await loadNCCFromExcel(file);
+          renderNCC(list);
+          alert('✅ Đã cập nhật danh sách NCC từ file Excel!');
+        }
+      };
+      input.click();
+    });
+
+    // ====== FORM ======
     document.getElementById('addItem').addEventListener('click', addRow);
     addRow();
     updateInvoiceID();
+    initNCC();
 
     document.getElementById('invoiceForm').addEventListener('submit', e => {
       e.preventDefault();
-      const ncc = document.getElementById('ncc').value.trim();
+      const nccSel = document.getElementById('nccSelect');
+      const tenNCC = nccSel.value;
+      const sdtNCC = nccSel.selectedOptions[0]?.dataset.sdt || '';
       const date = document.getElementById('date').value;
-      if (!ncc || !date) {
-        alert("Vui lòng nhập đủ thông tin!");
-        return;
-      }
+      if (!tenNCC || !date) return alert("Vui lòng chọn NCC và ngày!");
+
       const rows = document.querySelectorAll('#itemsBody tr');
       const items = [];
       rows.forEach(r => {
@@ -124,14 +177,12 @@
         const noiNhan = r.querySelector('.noiNhan').value.trim();
         items.push({ ten, dv, sl, dg, total, noiNhan });
       });
-      if (items.length === 0) {
-        alert("Phải có ít nhất 1 dòng vật tư!");
-        return;
-      }
+
+      if (items.length === 0) return alert("Phải có ít nhất 1 dòng vật tư!");
 
       let invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
       const id = getNextInvoiceID();
-      invoices.push({ id, ncc, date, items });
+      invoices.push({ id, ncc: { ten: tenNCC, sdt: sdtNCC }, date, items });
       localStorage.setItem('hoadonList', JSON.stringify(invoices));
       alert("💾 Đã lưu hóa đơn bán lẻ thành công!");
       window.location.href = 'index.html';
