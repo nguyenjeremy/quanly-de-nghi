@@ -7,7 +7,15 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* ======== Bảng hành chính ======== */
+    /* ======== CHỈ VIỀN CHO BẢNG NỘI DUNG (không viền ngoài) ======== */
+    /* loại bỏ .voucher border nếu có trong style.css bằng quy tắc này */
+    .voucher {
+      border: none !important;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* bảng nội dung phiếu có viền đen rõ */
     #voucher table, #voucher th, #voucher td {
       border: 1px solid #000 !important;
       border-collapse: collapse;
@@ -17,10 +25,12 @@
       background-color: #fff !important;
       font-weight: bold;
       text-align: center;
+      padding: 6px;
     }
     #voucher td {
-      padding: 5px;
+      padding: 6px;
     }
+
     .qr-section {
       display: flex;
       align-items: flex-start;
@@ -41,16 +51,17 @@
     }
     .approve-note {
       text-align: center;
-      margin-top: -10px;
+      margin-bottom: 6px;
       font-style: italic;
     }
 
-    /* ======== In A4, bỏ khung ngoài ======== */
+    /* ======== In A4: ẩn phần thao tác, KHÔNG IN KHUNG NGOÀI ======== */
     @media print {
       body {
         background: white;
         -webkit-print-color-adjust: exact !important;
       }
+      /* Ẩn UI không cần in */
       header, nav, .btn, .container h3, label, select, #filterBtn, hr, #itemsTable {
         display: none !important;
       }
@@ -60,6 +71,7 @@
         width: 100%;
         padding: 0;
       }
+      /* voucherContainer hiển thị */
       #voucherContainer {
         display: block !important;
       }
@@ -67,6 +79,24 @@
         size: A4 portrait;
         margin: 12mm;
       }
+      /* đảm bảo không có border ngoại trừ bảng trong voucher */
+      .voucher {
+        border: none !important;
+      }
+    }
+
+    /* nhỏ gọn cho màn hình */
+    .container {
+      width: 95%;
+      max-width: 1000px;
+      margin: 18px auto;
+      background: #fff;
+      padding: 14px;
+      box-shadow: 0 0 5px #ccc;
+    }
+
+    table#itemsTable th, table#itemsTable td {
+      border: 1px solid #ddd;
     }
   </style>
 </head>
@@ -117,131 +147,181 @@
   </div>
 
   <script>
+    // dữ liệu
     const invoices = JSON.parse(localStorage.getItem('hoadonList') || '[]');
     const body = document.getElementById('itemsBody');
 
     function formatMoney(num){ return Number(num).toLocaleString('vi-VN'); }
-
     function numberToWordsVN(num){
-      if(!num||num===0)return'Không đồng';
+      if(!num||num===0) return 'Không đồng';
       const donvi=['','nghìn','triệu','tỷ'];
       const chuso=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
       function doc3so(n){
-        let tram=Math.floor(n/100),chuc=Math.floor((n%100)/10),donv=n%10,str='';
-        if(tram>0){str+=chuso[tram]+' trăm';if(chuc===0&&donv>0)str+=' linh';}
-        if(chuc>1){str+=' '+chuso[chuc]+' mươi';if(donv===1)str+=' mốt';else if(donv===5)str+=' lăm';else if(donv>1)str+=' '+chuso[donv];}
-        else if(chuc===1){str+=' mười';if(donv===5)str+=' lăm';else if(donv>0)str+=' '+chuso[donv];}
-        else if(chuc===0&&donv>0&&tram===0)str+=chuso[donv];else if(donv>0)str+=' '+chuso[donv];
+        let tram=Math.floor(n/100), chuc=Math.floor((n%100)/10), donv=n%10, str='';
+        if(tram>0){ str+=chuso[tram]+' trăm'; if(chuc===0&&donv>0) str+=' linh'; }
+        if(chuc>1){ str+=' '+chuso[chuc]+' mươi'; if(donv===1) str+=' mốt'; else if(donv===5) str+=' lăm'; else if(donv>1) str+=' '+chuso[donv]; }
+        else if(chuc===1){ str+=' mười'; if(donv===5) str+=' lăm'; else if(donv>0) str+=' '+chuso[donv]; }
+        else if(chuc===0 && donv>0 && tram===0) str+=chuso[donv];
+        else if(donv>0) str+=' '+chuso[donv];
         return str.trim();
       }
-      let i=0,str='';while(num>0){let n=num%1000;if(n!==0)str=doc3so(n)+' '+donvi[i]+' '+str;num=Math.floor(num/1000);i++;}
-      return(str+' đồng').replace(/\s+/g,' ').trim();
+      let i=0, str='';
+      while(num>0){ let n=num%1000; if(n!==0) str = doc3so(n)+' '+donvi[i]+' '+str; num = Math.floor(num/1000); i++; }
+      return (str+' đồng').replace(/\s+/g,' ').trim();
     }
 
-    function getNCCName(inv){if(!inv.ncc)return'(Chưa nhập NCC)';if(typeof inv.ncc==='object')return inv.ncc.ten;return inv.ncc;}
+    function getNCCName(inv){ if(!inv.ncc) return '(Chưa nhập NCC)'; if(typeof inv.ncc==='object') return inv.ncc.ten; return inv.ncc; }
+
     function parseDate(str){
       if(!str) return null;
-      let [d,m,y] = str.includes('/') ? str.split('/') : str.includes('-') ? str.split('-').reverse() : [];
-      if(!d||!m||!y) return null;
-      return new Date(y, m-1, d);
+      // hỗ trợ dd/mm/yyyy hoặc yyyy-mm-dd hoặc dd-mm-yyyy
+      if(str.includes('/')) {
+        const [d,m,y] = str.split('/');
+        return new Date(Number(y), Number(m)-1, Number(d));
+      }
+      if(str.includes('-')) {
+        const parts = str.split('-');
+        if(parts[0].length === 4) { // yyyy-mm-dd
+          return new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
+        } else { // dd-mm-yyyy
+          return new Date(Number(parts[2]), Number(parts[1])-1, Number(parts[0]));
+        }
+      }
+      return null;
     }
 
     function renderTable(list){
-      body.innerHTML='';
-      if(list.length===0){ body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn trong ngày</td></tr>'; return; }
+      body.innerHTML = '';
+      if(list.length === 0) {
+        body.innerHTML = '<tr><td colspan="9" style="text-align:center">Không có hóa đơn</td></tr>';
+        return;
+      }
       list.forEach(inv=>{
         inv.items.forEach(it=>{
-          const row=body.insertRow();
-          row.insertCell().innerHTML='<input type="checkbox">';
-          row.insertCell().innerText=inv.date;
-          row.insertCell().innerText=it.ten;
-          row.insertCell().innerText=it.dv;
-          row.insertCell().innerText=it.sl;
-          row.insertCell().innerText=formatMoney(it.dg);
-          row.insertCell().innerText=formatMoney(it.total);
-          row.insertCell().innerText=it.noiNhan;
-          row.insertCell().innerText=getNCCName(inv);
+          const row = body.insertRow();
+          row.insertCell().innerHTML = '<input type="checkbox">';
+          row.insertCell().innerText = inv.date;
+          row.insertCell().innerText = it.ten;
+          row.insertCell().innerText = it.dv;
+          row.insertCell().innerText = it.sl;
+          row.insertCell().innerText = formatMoney(it.dg);
+          row.insertCell().innerText = formatMoney(it.total);
+          row.insertCell().innerText = it.noiNhan;
+          row.insertCell().innerText = getNCCName(inv);
         });
       });
     }
 
+    // mặc định hiển thị hóa đơn trong ngày (nếu ko có thì hiển thị all)
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    document.getElementById('fromDate').value = todayStr;
-    document.getElementById('toDate').value = todayStr;
+    const isoToday = today.toISOString().split('T')[0];
+    document.getElementById('fromDate').value = isoToday;
+    document.getElementById('toDate').value = isoToday;
 
     function filterToday(){
       let found = invoices.filter(inv=>{
-        const d=parseDate(inv.date);
+        const d = parseDate(inv.date);
         return d && d.getDate()===today.getDate() && d.getMonth()===today.getMonth() && d.getFullYear()===today.getFullYear();
       });
-      if(found.length===0) found = invoices;
+      if(found.length === 0) found = invoices;
       renderTable(found);
     }
     filterToday();
 
-    document.getElementById('filterBtn').addEventListener('click',()=>{
-      const from=document.getElementById('fromDate').value,to=document.getElementById('toDate').value;
-      const f=from?new Date(from):null,t=to?new Date(to):null;
-      const filtered=invoices.filter(inv=>{
-        const d=parseDate(inv.date);
-        return(!f||d>=f)&&(!t||d<=t);
+    document.getElementById('filterBtn').addEventListener('click', ()=>{
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      const f = from ? new Date(from) : null;
+      const t = to ? new Date(to) : null;
+      const filtered = invoices.filter(inv=>{
+        const d = parseDate(inv.date);
+        return (!f || d >= f) && (!t || d <= t);
       });
       renderTable(filtered);
     });
 
     function getNextDNTTNumber(){
-      const list=JSON.parse(localStorage.getItem('dnttList')||'[]');
-      return(list.length+1).toString().padStart(2,'0');
+      const list = JSON.parse(localStorage.getItem('dnttList') || '[]');
+      return (list.length + 1).toString().padStart(2,'0');
     }
 
-    document.getElementById('createVoucher').addEventListener('click',()=>{
-      const selected=Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
-      if(selected.length===0) return alert('Chưa chọn dòng nào!');
-      const ctySelect=document.getElementById('companySelect');
-      const ctyText=ctySelect.selectedOptions[0].text;
-      const ctyCode=ctySelect.value;
+    // Tạo phiếu
+    document.getElementById('createVoucher').addEventListener('click', ()=>{
+      const selected = Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
+      if(selected.length === 0) return alert('Chưa chọn dòng nào!');
+      const ctySelect = document.getElementById('companySelect');
+      const ctyText = ctySelect.selectedOptions[0].text;
+      const ctyCode = ctySelect.value;
 
-      let rows='',total=0,ncc='';
-      const itemsThanhToan=[];
-      selected.forEach((chk,idx)=>{
-        const r=chk.closest('tr');
-        const t=parseFloat(r.cells[6].innerText.replace(/\./g,''))||0;
-        total+=t; ncc=r.cells[8].innerText;
-        itemsThanhToan.push({ten:r.cells[2].innerText,dv:r.cells[3].innerText,sl:r.cells[4].innerText,dg:r.cells[5].innerText,total:t,noiNhan:r.cells[7].innerText});
-        rows+=`<tr><td style="text-align:center">${idx+1}</td><td>${r.cells[1].innerText}</td><td>${r.cells[2].innerText}</td><td>${r.cells[3].innerText}</td><td style="text-align:right">${r.cells[4].innerText}</td><td style="text-align:right">${r.cells[5].innerText}</td><td style="text-align:right">${r.cells[6].innerText}</td><td>${r.cells[7].innerText}</td><td>${r.cells[8].innerText}</td></tr>`;
+      let rows = '', total = 0, ncc = '';
+      const itemsThanhToan = [];
+
+      selected.forEach((chk, idx) => {
+        const r = chk.closest('tr');
+        const t = parseFloat(r.cells[6].innerText.replace(/\./g,'')) || 0;
+        total += t;
+        ncc = r.cells[8].innerText;
+        itemsThanhToan.push({
+          ten: r.cells[2].innerText,
+          dv: r.cells[3].innerText,
+          sl: r.cells[4].innerText,
+          dg: r.cells[5].innerText,
+          total: t,
+          noiNhan: r.cells[7].innerText
+        });
+        rows += `<tr>
+          <td style="text-align:center">${idx+1}</td>
+          <td>${r.cells[1].innerText}</td>
+          <td>${r.cells[2].innerText}</td>
+          <td>${r.cells[3].innerText}</td>
+          <td style="text-align:right">${r.cells[4].innerText}</td>
+          <td style="text-align:right">${r.cells[5].innerText}</td>
+          <td style="text-align:right">${r.cells[6].innerText}</td>
+          <td>${r.cells[7].innerText}</td>
+          <td>${r.cells[8].innerText}</td>
+        </tr>`;
       });
 
-      const d=new Date();
-      const nextNum=getNextDNTTNumber();
-      const soPhieu=`${nextNum}.${d.getMonth()+1}.${d.getFullYear()}/DNTT-${ctyCode}`;
-      const ngayText=`Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
-      const tienBangChu=numberToWordsVN(total);
-      const qrUrl=`https://qr.sepay.vn/img?acc=6513748359&bank=BIDV&amount=${total}&des=`;
+      const d = new Date();
+      const nextNum = getNextDNTTNumber();
+      const soPhieu = `${nextNum}.${d.getMonth()+1}.${d.getFullYear()}/DNTT-${ctyCode}`;
+      const ngayText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
+      const tienBangChu = numberToWordsVN(total);
+      const qrUrl = `https://qr.sepay.vn/img?acc=6513748359&bank=BIDV&amount=${total}&des=`;
 
-      const html=`<div class="voucher">
+      // năm hiện tại để hiển thị trong "Duyệt chi, ngày ...... tháng ...... năm <năm>"
+      const currentYear = new Date().getFullYear();
+
+      const html = `<div class="voucher">
         <div style="text-align:left;line-height:1.6">
           <b>${ctyText}</b><br/>
           <b>Số phiếu:</b> ${soPhieu}
         </div>
+
         <h2 style="text-align:center;margin:10px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
         <p style="text-align:center; font-weight:bold;">${ngayText}</p>
         <p><b>Kính gửi:</b> Ban lãnh đạo ${ctyText}</p>
         <p><b>Phòng:</b> Kế toán kho</p>
         <p><b>Nội dung:</b> Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì</p>
+
         <table>
-          <thead><tr>
-            <th>STT</th><th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th>
-            <th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th>
-          </tr></thead>
-          <tbody>${rows}
+          <thead>
+            <tr>
+              <th>STT</th><th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th><th>SL</th>
+              <th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
             <tr>
               <td colspan="7" style="text-align:right"><b>Tổng chi phí:</b></td>
               <td colspan="2"><b>${formatMoney(total)} VNĐ</b></td>
             </tr>
           </tbody>
         </table>
+
         <p><b>Số tiền bằng chữ:</b> ${tienBangChu.charAt(0).toUpperCase()+tienBangChu.slice(1)}</p>
+
         <div class="qr-section">
           <div>
             <b>Người thụ hưởng:</b><br/>
@@ -251,35 +331,47 @@
           </div>
           <img src="${qrUrl}" alt="QR Code"/>
         </div>
+
         <div class="signature">
           <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
           <div>Người kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
           <div>Kế toán trưởng<br><br>(ký, ghi rõ họ tên)</div>
           <div>
-            <div class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ...........</div><br>
+            <div class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ${currentYear}</div>
             Giám đốc<br><br>(ký, ghi rõ họ tên)
           </div>
         </div>
       </div>`;
 
-      document.getElementById('voucher').innerHTML=html;
-      document.getElementById('voucherContainer').style.display='block';
-      let list=JSON.parse(localStorage.getItem('dnttList')||'[]');
-      list.push({id:soPhieu,ngay:`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,cty:ctyText,ncc,tongTien:total,noiDung:'Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì',items:itemsThanhToan});
-      localStorage.setItem('dnttList',JSON.stringify(list));
+      document.getElementById('voucher').innerHTML = html;
+      document.getElementById('voucherContainer').style.display = 'block';
+
+      // lưu DNTT
+      let list = JSON.parse(localStorage.getItem('dnttList') || '[]');
+      list.push({
+        id: soPhieu,
+        ngay: `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,
+        cty: ctyText,
+        ncc,
+        tongTien: total,
+        noiDung: 'Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì',
+        items: itemsThanhToan
+      });
+      localStorage.setItem('dnttList', JSON.stringify(list));
     });
 
-    document.getElementById('printBtn').addEventListener('click',()=>window.print());
-    document.getElementById('pdfBtn').addEventListener('click',()=>{
-      const voucher=document.getElementById('voucher');
-      const d=new Date();
-      const fileName=`DNTT_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.pdf`;
-      html2canvas(voucher,{scale:2}).then(canvas=>{
-        const imgData=canvas.toDataURL('image/png');
-        const pdf=new jspdf.jsPDF('p','mm','a4');
-        const pageWidth=pdf.internal.pageSize.getWidth();
-        const imgHeight=canvas.height*pageWidth/canvas.width;
-        pdf.addImage(imgData,'PNG',0,0,pageWidth,imgHeight);
+    // in / pdf
+    document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+    document.getElementById('pdfBtn').addEventListener('click', ()=>{
+      const voucher = document.getElementById('voucher');
+      const d = new Date();
+      const fileName = `DNTT_${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}.pdf`;
+      html2canvas(voucher, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jspdf.jsPDF('p', 'mm', 'a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const imgHeight = canvas.height * pageWidth / canvas.width;
+        pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
         pdf.save(fileName);
       });
     });
