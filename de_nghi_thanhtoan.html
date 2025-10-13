@@ -27,13 +27,6 @@
       <option value="TP">Công ty TNHH Gạch Tuynel Thanh Phong</option>
     </select>
 
-    <hr>
-    <h3>Lọc hóa đơn theo ngày</h3>
-    <label>Từ ngày: <input type="date" id="fromDate"></label>
-    <label>Đến ngày: <input type="date" id="toDate"></label>
-    <button class="btn secondary" id="filterBtn">Lọc</button>
-
-    <hr>
     <table id="itemsTable">
       <thead>
         <tr>
@@ -106,93 +99,37 @@
       return inv.ncc;
     }
 
-    function parseDate(str) {
-      if (!str) return null;
-      const parts = str.split(/[\/\-\.]/).map(Number);
-      if (parts.length === 3) {
-        const [a, b, c] = parts;
-        const [d, m, y] = a > 31 ? [c, b, a] : [a, b, c];
-        return new Date(y, m - 1, d);
-      }
-      return null;
-    }
-
-    function renderTable(list) {
-      body.innerHTML = '';
-      list.forEach(inv => {
-        inv.items.forEach(it => {
-          const row = body.insertRow();
-          row.insertCell().innerHTML = '<input type="checkbox">';
-          row.insertCell().innerText = inv.date;
-          row.insertCell().innerText = it.ten;
-          row.insertCell().innerText = it.dv;
-          row.insertCell().innerText = it.sl;
-          row.insertCell().innerText = formatMoney(it.dg);
-          row.insertCell().innerText = formatMoney(it.total);
-          row.insertCell().innerText = it.noiNhan;
-          row.insertCell().innerText = getNCCName(inv);
-        });
+    invoices.forEach(inv => {
+      inv.items.forEach(it => {
+        const row = body.insertRow();
+        row.insertCell().innerHTML = '<input type="checkbox">';
+        row.insertCell().innerText = inv.date;
+        row.insertCell().innerText = it.ten;
+        row.insertCell().innerText = it.dv;
+        row.insertCell().innerText = it.sl;
+        row.insertCell().innerText = formatMoney(it.dg);
+        row.insertCell().innerText = formatMoney(it.total);
+        row.insertCell().innerText = it.noiNhan;
+        row.insertCell().innerText = getNCCName(inv);
       });
-    }
-
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    document.getElementById('fromDate').value = todayStr;
-    document.getElementById('toDate').value = todayStr;
-
-    function filterToday() {
-      const filtered = invoices.filter(inv => {
-        const invDate = parseDate(inv.date);
-        return invDate &&
-          invDate.getDate() === today.getDate() &&
-          invDate.getMonth() === today.getMonth() &&
-          invDate.getFullYear() === today.getFullYear();
-      });
-      renderTable(filtered);
-    }
-
-    filterToday();
-
-    document.getElementById('filterBtn').addEventListener('click', () => {
-      const from = document.getElementById('fromDate').value;
-      const to = document.getElementById('toDate').value;
-      const f = from ? new Date(from) : null;
-      const t = to ? new Date(to) : null;
-      const filtered = invoices.filter(inv => {
-        const d = parseDate(inv.date);
-        return (!f || d >= f) && (!t || d <= t);
-      });
-      renderTable(filtered);
     });
 
     function getNextDNTTNumber() {
-      const list = JSON.parse(localStorage.getItem('dnttList') || '[]');
-      return (list.length + 1).toString().padStart(2, '0');
+      const dnttList = JSON.parse(localStorage.getItem('dnttList') || '[]');
+      return dnttList.length + 1;
     }
 
     document.getElementById('createVoucher').addEventListener('click', () => {
       const selected = Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
       if (selected.length === 0) return alert('Chưa chọn dòng nào!');
-      const ctySelect = document.getElementById('companySelect');
-      const ctyText = ctySelect.selectedOptions[0].text;
-      const ctyCode = ctySelect.value;
+      const cty = document.getElementById('companySelect').selectedOptions[0].text;
 
       let rows = '', total = 0, ncc = '';
-      const itemsThanhToan = [];
-
       selected.forEach(chk => {
         const r = chk.closest('tr');
         const t = parseFloat(r.cells[6].innerText.replace(/\./g,'')) || 0;
         total += t;
         ncc = r.cells[8].innerText;
-        itemsThanhToan.push({
-          ten: r.cells[2].innerText,
-          dv: r.cells[3].innerText,
-          sl: r.cells[4].innerText,
-          dg: r.cells[5].innerText,
-          total: t,
-          noiNhan: r.cells[7].innerText
-        });
         rows += `<tr>
           <td>${r.cells[1].innerText}</td>
           <td>${r.cells[2].innerText}</td>
@@ -207,19 +144,19 @@
 
       const d = new Date();
       const nextNum = getNextDNTTNumber();
-      const soPhieu = `${nextNum}.${d.getMonth()+1}.${d.getFullYear()}/DNTT-${ctyCode}`;
+      const soPhieu = `${nextNum}.${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}/DNTT`;
       const ngayText = `Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}`;
       const tienBangChu = numberToWordsVN(total);
 
       const html = `
         <div class="voucher">
           <div style="text-align:left;line-height:1.6">
-            <b>${ctyText}</b><br/>
+            <b>${cty}</b><br/>
             <b>Số phiếu:</b> ${soPhieu}
           </div>
           <h2 style="text-align:center;margin:10px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
           <p style="text-align:center; font-weight:bold;">${ngayText}</p>
-          <p><b>Kính gửi:</b> Ban lãnh đạo ${ctyText}</p>
+          <p><b>Kính gửi:</b> Ban lãnh đạo ${cty}</p>
           <p><b>Phòng:</b> Kế toán kho</p>
           <p><b>Nội dung:</b> Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì</p>
           <table>
@@ -235,7 +172,12 @@
             </tbody>
           </table>
           <p><b>Số tiền bằng chữ:</b> ${tienBangChu.charAt(0).toUpperCase() + tienBangChu.slice(1)}</p>
-          <p><b>Người thụ hưởng:</b> Nguyễn Hữu Công – STK: 6513748359 – Ngân hàng BIDV</p>
+
+          <p style="display:flex;align-items:center;gap:20px;">
+            <span><b>Người thụ hưởng:</b> Nguyễn Hữu Công – STK: 6513748359 – Ngân hàng BIDV</span>
+            <img src="https://qr.sepay.vn/img?acc=6513748359&bank=BIDV&amount=${total}&des=" 
+                 alt="QR Code" style="width:120px;height:120px;border:1px solid #000;">
+          </p>
 
           <div class="signature">
             <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
@@ -248,15 +190,15 @@
       document.getElementById('voucher').innerHTML = html;
       document.getElementById('voucherContainer').style.display = 'block';
 
-      let list = JSON.parse(localStorage.getItem('dnttList') || '[]');
-      list.push({
+      let dnttList = JSON.parse(localStorage.getItem('dnttList') || '[]');
+      dnttList.push({
         id: soPhieu,
         ngay: `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`,
-        cty: ctyText, ncc, tongTien: total,
-        noiDung: 'Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì',
-        items: itemsThanhToan
+        cty, ncc, tongTien: total,
+        noiDung: 'Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì'
       });
-      localStorage.setItem('dnttList', JSON.stringify(list));
+      localStorage.setItem('dnttList', JSON.stringify(dnttList));
+      alert("✅ Đã lưu phiếu thanh toán thành công!");
     });
 
     document.getElementById('printBtn').addEventListener('click', () => window.print());
