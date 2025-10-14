@@ -7,7 +7,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* === Bảng nội dung phiếu === */
     .voucher { border: none !important; padding: 0; margin: 0; }
     #voucher table, #voucher th, #voucher td {
       border: 1px solid #000 !important;
@@ -22,7 +21,7 @@
     }
     #voucher td { padding: 6px; }
 
-    /* === QR góc phải === */
+    /* QR code góc phải */
     .voucher-header {
       display: flex;
       justify-content: space-between;
@@ -33,7 +32,7 @@
       height: 120px;
     }
 
-    /* === Chữ ký và dòng duyệt chi === */
+    /* Chữ ký */
     .signature {
       display: flex;
       justify-content: space-between;
@@ -42,10 +41,12 @@
     }
     .signature div { width: 23%; }
 
+    /* Duyệt chi căn phải ngay trên phần ký tên */
     .approve-note {
-      text-align: left;
+      text-align: right;
       font-style: italic;
-      margin-bottom: 10px;
+      margin-top: 20px;
+      margin-right: 50px;
     }
 
     @media print {
@@ -144,6 +145,7 @@
       if(str.includes('-')){const p=str.split('-');return p[0].length===4?new Date(p[0],p[1]-1,p[2]):new Date(p[2],p[1]-1,p[0]);}
       return null;
     }
+
     function renderTable(list){
       body.innerHTML='';
       if(list.length===0){body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn</td></tr>';return;}
@@ -223,8 +225,8 @@
           </div>
           <img src="${qrUrl}" alt="QR Code"/>
         </div>
-        <h2 style="text-align:center;margin:10px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
-        <p style="text-align:center; font-weight:bold;">${ngayText}</p>
+        <h2 style="text-align:center;margin:5px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
+        <p style="text-align:center; font-weight:bold; margin:0 0 10px 0;">${ngayText}</p>
         <p><b>Kính gửi:</b> Ban lãnh đạo ${ctyText}</p>
         <p><b>Phòng:</b> Kế toán kho</p>
         <p><b>Nội dung:</b> Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì</p>
@@ -234,12 +236,16 @@
         </table>
         <p><b>Số tiền bằng chữ:</b> ${tienBangChu.charAt(0).toUpperCase()+tienBangChu.slice(1)}</p>
         <p><b>Người thụ hưởng:</b> Nguyễn Hữu Công - STK: 6513748359 - Ngân hàng BIDV</p>
-        <p class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ${new Date().getFullYear()}</p>
+
         <div class="signature">
           <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
           <div>Người kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
           <div>Kế toán trưởng<br><br>(ký, ghi rõ họ tên)</div>
           <div>Giám đốc<br><br>(ký, ghi rõ họ tên)</div>
+        </div>
+
+        <div class="approve-note">
+          Duyệt chi, ngày ...... tháng ...... năm ${new Date().getFullYear()}
         </div>
       </div>`;
       document.getElementById('voucher').innerHTML=html;
