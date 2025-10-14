@@ -7,10 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    /* Không có khung viền ngoài */
+    /* === Bảng nội dung phiếu === */
     .voucher { border: none !important; padding: 0; margin: 0; }
-
-    /* Bảng nội dung phiếu có viền đen */
     #voucher table, #voucher th, #voucher td {
       border: 1px solid #000 !important;
       border-collapse: collapse;
@@ -24,17 +22,18 @@
     }
     #voucher td { padding: 6px; }
 
-    /* QR code và bố cục */
-    .qr-section {
+    /* === QR góc phải === */
+    .voucher-header {
       display: flex;
-      align-items: flex-start;
       justify-content: space-between;
-      margin-top: 10px;
+      align-items: flex-start;
     }
-    .qr-section div { line-height: 1.6; }
-    .qr-section img { width: 120px; height: 120px; }
+    .voucher-header img {
+      width: 120px;
+      height: 120px;
+    }
 
-    /* Chữ ký */
+    /* === Chữ ký và dòng duyệt chi === */
     .signature {
       display: flex;
       justify-content: space-between;
@@ -44,38 +43,22 @@
     .signature div { width: 23%; }
 
     .approve-note {
-      text-align: center;
-      margin-bottom: 6px;
+      text-align: left;
       font-style: italic;
-      white-space: nowrap;
+      margin-bottom: 10px;
     }
 
-    /* In ra không có khung, chỉ có bảng */
     @media print {
-      body {
-        background: white;
-        -webkit-print-color-adjust: exact !important;
-      }
+      body { background: white; -webkit-print-color-adjust: exact !important; }
       header, nav, .btn, .container h3, label, select, #filterBtn, hr, #itemsTable {
         display: none !important;
       }
-      .container {
-        box-shadow: none;
-        margin: 0;
-        width: 100%;
-        padding: 0;
-      }
-      #voucherContainer {
-        display: block !important;
-      }
-      @page {
-        size: A4 portrait;
-        margin: 12mm;
-      }
+      .container { box-shadow: none; margin: 0; width: 100%; padding: 0; }
+      #voucherContainer { display: block !important; }
+      @page { size: A4 portrait; margin: 12mm; }
       .voucher { border: none !important; }
     }
 
-    /* Giao diện khung nhập liệu */
     .container {
       width: 95%;
       max-width: 1000px;
@@ -84,9 +67,7 @@
       padding: 14px;
       box-shadow: 0 0 5px #ccc;
     }
-    table#itemsTable th, table#itemsTable td {
-      border: 1px solid #ddd;
-    }
+    table#itemsTable th, table#itemsTable td { border: 1px solid #ddd; }
   </style>
 </head>
 <body>
@@ -140,9 +121,8 @@
     const body = document.getElementById('itemsBody');
 
     function formatMoney(num){ return Number(num).toLocaleString('vi-VN'); }
-
     function numberToWordsVN(num){
-      if(!num||num===0) return 'Không đồng';
+      if(!num||num===0)return'Không đồng';
       const donvi=['','nghìn','triệu','tỷ'];
       const chuso=['không','một','hai','ba','bốn','năm','sáu','bảy','tám','chín'];
       function doc3so(n){
@@ -157,18 +137,16 @@
       return(str+' đồng').replace(/\s+/g,' ').trim();
     }
 
-    function getNCCName(inv){ if(!inv.ncc) return '(Chưa nhập NCC)'; if(typeof inv.ncc==='object') return inv.ncc.ten; return inv.ncc; }
-
+    function getNCCName(inv){if(!inv.ncc)return'(Chưa nhập NCC)';if(typeof inv.ncc==='object')return inv.ncc.ten;return inv.ncc;}
     function parseDate(str){
-      if(!str) return null;
-      if(str.includes('/')){ const [d,m,y]=str.split('/'); return new Date(y,m-1,d); }
-      if(str.includes('-')){ const p=str.split('-'); return p[0].length===4 ? new Date(p[0],p[1]-1,p[2]) : new Date(p[2],p[1]-1,p[0]); }
+      if(!str)return null;
+      if(str.includes('/')){const[d,m,y]=str.split('/');return new Date(y,m-1,d);}
+      if(str.includes('-')){const p=str.split('-');return p[0].length===4?new Date(p[0],p[1]-1,p[2]):new Date(p[2],p[1]-1,p[0]);}
       return null;
     }
-
     function renderTable(list){
       body.innerHTML='';
-      if(list.length===0){ body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn</td></tr>'; return; }
+      if(list.length===0){body.innerHTML='<tr><td colspan="9" style="text-align:center">Không có hóa đơn</td></tr>';return;}
       list.forEach(inv=>{
         inv.items.forEach(it=>{
           const row=body.insertRow();
@@ -185,11 +163,14 @@
       });
     }
 
-    const today=new Date(), todayStr=today.toISOString().split('T')[0];
+    const today=new Date(),todayStr=today.toISOString().split('T')[0];
     document.getElementById('fromDate').value=todayStr;
     document.getElementById('toDate').value=todayStr;
     function filterToday(){
-      let found=invoices.filter(inv=>{const d=parseDate(inv.date);return d&&d.getDate()===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();});
+      let found=invoices.filter(inv=>{
+        const d=parseDate(inv.date);
+        return d&&d.getDate()===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();
+      });
       if(found.length===0)found=invoices;
       renderTable(found);
     }
@@ -212,7 +193,7 @@
 
     document.getElementById('createVoucher').addEventListener('click',()=>{
       const selected=Array.from(document.querySelectorAll('#itemsBody input[type=checkbox]:checked'));
-      if(selected.length===0) return alert('Chưa chọn dòng nào!');
+      if(selected.length===0)return alert('Chưa chọn dòng nào!');
       const ctySelect=document.getElementById('companySelect');
       const ctyText=ctySelect.selectedOptions[0].text;
       const ctyCode=ctySelect.value;
@@ -221,9 +202,8 @@
       const itemsThanhToan=[];
       selected.forEach((chk,idx)=>{
         const r=chk.closest('tr');
-        const t=parseFloat(r.cells[6].innerText.replace(/\./g,''))||0;
-        total+=t;
-        ncc=r.cells[8].innerText;
+        const t=parseFloat(r.cells[6].innerText.replace(/\\./g,''))||0;
+        total+=t;ncc=r.cells[8].innerText;
         itemsThanhToan.push({ten:r.cells[2].innerText,dv:r.cells[3].innerText,sl:r.cells[4].innerText,dg:r.cells[5].innerText,total:t,noiNhan:r.cells[7].innerText});
         rows+=`<tr><td style="text-align:center">${idx+1}</td><td>${r.cells[1].innerText}</td><td>${r.cells[2].innerText}</td><td>${r.cells[3].innerText}</td><td style="text-align:right">${r.cells[4].innerText}</td><td style="text-align:right">${r.cells[5].innerText}</td><td style="text-align:right">${r.cells[6].innerText}</td><td>${r.cells[7].innerText}</td><td>${r.cells[8].innerText}</td></tr>`;
       });
@@ -236,9 +216,12 @@
       const qrUrl=`https://qr.sepay.vn/img?acc=6513748359&bank=BIDV&amount=${total}&des=`;
 
       const html=`<div class="voucher">
-        <div style="text-align:left;line-height:1.6">
-          <b>${ctyText}</b><br/>
-          <b>Số phiếu:</b> ${soPhieu}
+        <div class="voucher-header">
+          <div style="text-align:left;line-height:1.6">
+            <b>${ctyText}</b><br/>
+            <b>Số phiếu:</b> ${soPhieu}
+          </div>
+          <img src="${qrUrl}" alt="QR Code"/>
         </div>
         <h2 style="text-align:center;margin:10px 0;">GIẤY ĐỀ NGHỊ THANH TOÁN</h2>
         <p style="text-align:center; font-weight:bold;">${ngayText}</p>
@@ -246,35 +229,17 @@
         <p><b>Phòng:</b> Kế toán kho</p>
         <p><b>Nội dung:</b> Đề nghị thanh toán tiền mua vật tư sửa chữa và bảo trì</p>
         <table>
-          <thead><tr>
-            <th>STT</th><th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th>
-            <th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th>
-          </tr></thead>
-          <tbody>${rows}
-            <tr>
-              <td colspan="7" style="text-align:right"><b>Tổng chi phí:</b></td>
-              <td colspan="2"><b>${formatMoney(total)} VNĐ</b></td>
-            </tr>
-          </tbody>
+          <thead><tr><th>STT</th><th>Ngày mua</th><th>Tên hàng</th><th>ĐVT</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nơi nhận</th><th>Nhà CC</th></tr></thead>
+          <tbody>${rows}<tr><td colspan="7" style="text-align:right"><b>Tổng chi phí:</b></td><td colspan="2"><b>${formatMoney(total)} VNĐ</b></td></tr></tbody>
         </table>
         <p><b>Số tiền bằng chữ:</b> ${tienBangChu.charAt(0).toUpperCase()+tienBangChu.slice(1)}</p>
-        <div class="qr-section">
-          <div>
-            <b>Người thụ hưởng:</b><br/>
-            Nguyễn Hữu Công<br/>
-            STK: 6513748359<br/>
-            Ngân hàng BIDV
-          </div>
-          <img src="${qrUrl}" alt="QR Code"/>
-        </div>
+        <p><b>Người thụ hưởng:</b> Nguyễn Hữu Công - STK: 6513748359 - Ngân hàng BIDV</p>
+        <p class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ${new Date().getFullYear()}</p>
         <div class="signature">
           <div>Người đề nghị<br><br>(ký, ghi rõ họ tên)</div>
           <div>Người kiểm soát<br><br>(ký, ghi rõ họ tên)</div>
           <div>Kế toán trưởng<br><br>(ký, ghi rõ họ tên)</div>
-          <div>
-            <div class="approve-note">Duyệt chi, ngày ...... tháng ...... năm ${new Date().getFullYear()}</div>
-            Giám đốc<br><br>(ký, ghi rõ họ tên)
-          </div>
+          <div>Giám đốc<br><br>(ký, ghi rõ họ tên)</div>
         </div>
       </div>`;
       document.getElementById('voucher').innerHTML=html;
